@@ -1,0 +1,16 @@
+services:
+  vehicle-loan-app:
+    build: .
+    image: vehicle-loan-app:latest
+    container_name: vehicle-loan-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-change_this_password}
+      - PORT=3000
+    volumes:
+      - vehicle_loan_data:/app/data
+
+volumes:
+  vehicle_loan_data:

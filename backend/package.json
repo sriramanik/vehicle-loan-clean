@@ -1,0 +1,17 @@
+{
+  "name": "vehicle-loan-system",
+  "version": "1.0.0",
+  "description": "Vehicle loan/return tracking system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "multer": "^2.0.0"
+  }
+}

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fleet Control — Vehicle Loan Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <div class="page-header">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">FC</div>
+        <div>
+          <div class="brand-title">Fleet Control</div>
+          <div class="brand-sub" id="dateLabel">--</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="openHelpModal()">?</button>
+        <a href="admin.html" class="btn btn-outline btn-sm btn-pill">Admin</a>
+      </div>
+    </div>
+    <div class="status-bar" id="dutyPill"><span class="dot"></span><span id="dutyLabel">--</span></div>
+  </div>
+
+  <div class="container">
+
+    <div class="summary-row">
+      <div class="summary-chip available">
+        <span class="dot"></span>
+        <div><div class="num" id="countAvailable">0</div><div class="label">Free</div></div>
+      </div>
+      <div class="summary-chip loaned">
+        <span class="dot"></span>
+        <div><div class="num" id="countLoaned">0</div><div class="label">Out</div></div>
+      </div>
+      <div class="summary-chip maintenance">
+        <span class="dot"></span>
+        <div><div class="num" id="countMaintenance">0</div><div class="label">Off</div></div>
+      </div>
+    </div>
+    <div class="hint-line">Tap any car to loan, return, or flag it</div>
+
+    <div id="carGrid"></div>
+    <div id="emptyState" class="empty-state" style="display:none;">No cars set up yet. Go to Admin to add cars.</div>
+
+  </div>
+
+</div>
+
+<!-- CAR ACTION SHEET -->
+<div class="modal-overlay" id="carSheetOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('carSheetOverlay')">&times;</button>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+      <h2 id="sheetCarNum" style="font-size:24px;">Car</h2>
+      <span class="status-badge" id="sheetStatusBadge"></span>
+    </div>
+    <div class="sub" id="sheetCarSub"></div>
+
+    <div id="sheetLoanInfo"></div>
+    <div id="sheetRemarks"></div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn btn-primary" id="sheetTakeBtn" onclick="sheetOpenLoan()" style="display:none;">Take this car</button>
+      <button class="btn btn-danger" id="sheetReturnBtn" onclick="sheetOpenReturn()" style="display:none;">Return this car</button>
+      <button class="btn btn-outline" onclick="sheetOpenRemark()">Add / view remark</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOAN MODAL -->
+<div class="modal-overlay" id="loanModalOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('loanModalOverlay')">&times;</button>
+    <h2 id="loanCarLabel">Take a car</h2>
+    <div class="sub" id="loanCarSub">Enter your staff number below</div>
+
+    <div class="field">
+      <label>Your staff number</label>
+      <input type="text" id="loanStaffNumber" inputmode="numeric" placeholder="e.g. 12345" autocomplete="off">
+    </div>
+
+    <div id="loanStaffConfirm"></div>
+
+    <div class="field" id="newStaffNameField" style="display:none;">
+      <label>New here — your name</label>
+      <input type="text" id="newStaffName" placeholder="Full name">
+    </div>
+
+    <!-- Quick inspection mode -->
+    <div id="quickInspectionBlock" style="display:none;">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-title">Vehicle checked, all good</div>
+          <div class="toggle-sub">Fuel, exterior &amp; interior OK</div>
+        </div>
+        <button type="button" class="switch on" id="quickAllOkSwitch" onclick="toggleQuickAllOk()"><span class="knob"></span></button>
+      </div>
+      <div class="field" id="quickIssueField" style="display:none;">
+        <label>What's wrong?</label>
+        <input type="text" id="quickIssueNote" placeholder="e.g. scratch on rear bumper, low fuel">
+      </div>
+    </div>
+
+    <!-- Detailed inspection mode -->
+    <div id="detailedInspectionBlock" style="display:none;">
+      <div class="toggle-row-plain">
+        <span>Exterior OK</span>
+        <button type="button" class="switch on" id="extOkSwitch" onclick="toggleExtOk()"><span class="knob"></span></button>
+      </div>
+      <div class="toggle-row-plain" style="margin-bottom:12px;">
+        <span>Interior OK</span>
+        <button type="button" class="switch on" id="intOkSwitch" onclick="toggleIntOk()"><span class="knob"></span></button>
+      </div>
+      <div class="field">
+        <label>Fuel level</label>
+        <div class="fuel-selector" id="fuelSelector"></div>
+      </div>
+      <div class="field">
+        <label>Damage / notes (optional)</label>
+        <input type="text" id="detailedNotes" placeholder="e.g. small scratch on rear bumper">
+      </div>
+    </div>
+
+    <div class="error-msg" id="loanError" style="display:none;"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('loanModalOverlay')">Cancel</button>
+      <button class="btn btn-primary" id="loanSubmitBtn" onclick="submitLoan()">Confirm &amp; take car</button>
+    </div>
+  </div>
+</div>
+
+<!-- RETURN MODAL -->
+<div class="modal-overlay" id="returnModalOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('returnModalOverlay')">&times;</button>
+    <h2 id="returnCarLabel">Return a car</h2>
+    <div class="sub" id="returnCarSub">Confirm who is returning this car</div>
+
+    <div class="loan-info" id="returnLoanInfo" style="display:none;"></div>
+
+    <div class="field">
+      <label>Returning staff number</label>
+      <input type="text" id="returnStaffNumber" inputmode="numeric" placeholder="e.g. 12345" autocomplete="off">
+    </div>
+
+    <div id="returnStaffConfirm"></div>
+
+    <div class="error-msg" id="returnError" style="display:none;"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('returnModalOverlay')">Cancel</button>
+      <button class="btn btn-danger" id="returnSubmitBtn" onclick="submitReturn()">Confirm return</button>
+    </div>
+  </div>
+</div>
+
+<!-- REMARK MODAL -->
+<div class="modal-overlay" id="remarkModalOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('remarkModalOverlay')">&times;</button>
+    <h2 id="remarkCarLabel">Remark</h2>
+    <div style="margin-top:12px;" id="currentRemarkBlock"></div>
+
+    <div id="addRemarkBlock">
+      <div class="field">
+        <label>Your staff number</label>
+        <input type="text" id="remarkStaffNumber" inputmode="numeric" placeholder="e.g. 12345" autocomplete="off">
+      </div>
+      <div id="remarkStaffConfirm"></div>
+      <div class="field">
+        <label>Remark</label>
+        <input type="text" id="remarkText" placeholder="e.g. AC not cooling, car needs cleaning...">
+      </div>
+      <div class="error-msg" id="remarkError" style="display:none;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('remarkModalOverlay')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitRemark()">Save remark</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div class="modal-overlay center-on-desktop" id="helpModalOverlay">
+  <div class="modal modal-center">
+    <button class="close-x" onclick="closeModal('helpModalOverlay')">&times;</button>
+    <h2 style="margin-bottom:16px;">How this works</h2>
+
+    <div class="help-block">
+      <p><strong>Tap any car</strong> — colors show status at a glance: green = free, red = out, gray = off duty.</p>
+    </div>
+    <div class="help-block">
+      <p><strong>Take a car</strong> — enter your staff number, confirm the quick vehicle check, and go.</p>
+    </div>
+    <div class="help-block">
+      <p><strong>Return a car</strong> — tap the loaned car and confirm the staff number returning it.</p>
+    </div>
+    <div class="help-block">
+      <p><strong>Remarks</strong> — flag an issue on any car any time, no login needed (up to 5 open remarks per car). A small amber dot shows on cars with an open remark.</p>
+    </div>
+    <div class="help-block">
+      <p><strong>Shift &amp; team</strong> — the bar under the header shows which of the 4 rotating teams (A/B/C/D) is on duty and whether it's Day (06:00–18:00) or Night (18:00–06:00), calculated automatically.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

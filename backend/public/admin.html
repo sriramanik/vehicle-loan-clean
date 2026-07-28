@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Admin · Fleet Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="brand-mark">FC</div>
+    <h2 style="font-size:19px; margin-bottom:4px;">Admin sign in</h2>
+    <div class="sub" style="color:var(--text-dim); font-size:13px; margin-bottom:20px;">Enter the admin password to continue</div>
+    <div class="field" style="text-align:left;">
+      <input type="password" id="passwordInput" placeholder="Password" style="width:100%;" onkeydown="if(event.key==='Enter'){ event.preventDefault(); login(); }">
+    </div>
+    <div class="error-msg" id="loginError" style="display:none;"></div>
+    <button class="btn btn-primary btn-block" onclick="login()" style="margin-bottom:14px;">Log in</button>
+    <a href="index.html" style="font-size:13px;">&larr; Back to dashboard</a>
+  </div>
+</div>
+
+<div id="adminApp" style="display:none;">
+
+  <div class="page-header">
+    <div class="admin-topbar">
+      <div class="brand">
+        <div class="brand-mark">FC</div>
+        <div>
+          <div class="brand-title">Admin panel</div>
+          <div class="brand-sub">Fleet Control</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <a href="index.html" class="btn btn-outline btn-sm btn-pill">Dashboard</a>
+        <button class="btn btn-outline btn-sm btn-pill" onclick="logout()">Log out</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-container">
+    <div style="padding:18px;">
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="overview">Overview</button>
+        <button class="admin-tab" data-tab="cars">Cars</button>
+        <button class="admin-tab" data-tab="staff">Staff</button>
+        <button class="admin-tab" data-tab="records">Records</button>
+        <button class="admin-tab" data-tab="help">Help</button>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div class="admin-panel active" id="panel-overview">
+        <div class="kpi-row">
+          <div class="kpi-card"><div class="kpi-num" id="kpiTotal">0</div><div class="kpi-label">Total fleet</div></div>
+          <div class="kpi-card available"><div class="kpi-num" id="kpiAvailable">0</div><div class="kpi-label">Available</div></div>
+          <div class="kpi-card loaned"><div class="kpi-num" id="kpiLoaned">0</div><div class="kpi-label">Loaned</div></div>
+          <div class="kpi-card maintenance"><div class="kpi-num" id="kpiMaintenance">0</div><div class="kpi-label">Off duty</div></div>
+          <div class="kpi-card remarks"><div class="kpi-num" id="kpiRemarks">0</div><div class="kpi-label">Open remarks</div></div>
+        </div>
+
+        <div class="section-title">Team utilization</div>
+        <div id="teamUtilization"></div>
+
+        <div class="settings-card">
+          <div class="settings-title">Loan inspection mode</div>
+          <div class="settings-sub">Quick is a single "all good" toggle for the common case. Detailed shows the full exterior/interior/fuel checklist.</div>
+          <div class="segmented">
+            <button id="modeQuickBtn" onclick="setInspectionMode('quick')">Quick</button>
+            <button id="modeDetailedBtn" onclick="setInspectionMode('detailed')">Detailed</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARS TAB -->
+      <div class="admin-panel" id="panel-cars">
+        <div class="toolbar">
+          <button class="btn btn-primary btn-sm" onclick="openAddCarForm()">+ Add car</button>
+          <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+            Import CSV
+            <input type="file" id="carsCsvFile" accept=".csv" style="display:none;" onchange="importCarsCsv(event)">
+          </label>
+        </div>
+        <div class="sub" style="color:var(--text-dim); font-size:12.5px; margin-bottom:12px;">
+          CSV format: column A = car #, column B = reg #, column C (optional) = allocation. Cars
+          imported without an allocation stay hidden from the dashboard until you set one, but
+          remain visible and editable right here.
+        </div>
+
+        <div id="addCarForm" class="inline-form" style="display:none;">
+          <input class="filter-input" id="newCarNumber" placeholder="Car # (e.g. 02)">
+          <input class="filter-input" id="newRegNumber" placeholder="Reg # (e.g. 61228)">
+          <select class="filter-input" id="newAllocation"></select>
+          <button class="btn btn-primary btn-sm" onclick="submitAddCar()">Save</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('addCarForm').style.display='none'">Cancel</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Car #</th><th>Reg #</th><th>Allocation</th><th>Status</th><th>Loaned to</th><th>Documents</th><th>Actions</th></tr></thead>
+            <tbody id="carsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- STAFF TAB -->
+      <div class="admin-panel" id="panel-staff">
+        <div class="toolbar">
+          <input class="filter-input" id="newStaffNumber" placeholder="Staff number">
+          <input class="filter-input" id="newStaffNameInput" placeholder="Name">
+          <button class="btn btn-primary btn-sm" onclick="submitAddStaff()">+ Add staff</button>
+          <span style="flex:1;"></span>
+          <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+            Import CSV
+            <input type="file" id="csvFile" accept=".csv" style="display:none;" onchange="importCsv(event)">
+          </label>
+        </div>
+        <div class="sub" style="color:var(--text-dim); font-size:12.5px; margin-bottom:12px;">
+          CSV format: column A = staff number, column B = name. No header row needed.
+        </div>
+        <div class="table-wrap" style="max-width:520px;">
+          <table>
+            <thead><tr><th>Staff #</th><th>Name</th><th>Actions</th></tr></thead>
+            <tbody id="staffTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RECORDS TAB -->
+      <div class="admin-panel" id="panel-records">
+        <div class="toolbar">
+          <input class="filter-input" type="date" id="filterDate">
+          <select class="filter-input" id="filterTeam">
+            <option value="">All duty teams</option>
+            <option value="A">Team A</option>
+            <option value="B">Team B</option>
+            <option value="C">Team C</option>
+            <option value="D">Team D</option>
+          </select>
+          <input class="filter-input" id="filterStaff" placeholder="Staff #">
+          <input class="filter-input" id="filterCar" placeholder="Car #">
+          <button class="btn btn-outline btn-sm" onclick="loadRecords()">Filter</button>
+          <button class="btn btn-primary btn-sm" onclick="exportCsv()">Export CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Shift date</th><th>Shift</th><th>Team</th><th>Car</th>
+              <th>Issued to</th><th>Issued at</th><th>Returned at</th><th>Returned by</th><th>Status</th><th>Inspection</th>
+            </tr></thead>
+            <tbody id="recordsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:28px;">
+          <div class="section-title" style="margin-bottom:4px;">Monthly archives</div>
+          <div class="sub" style="color:var(--text-dim); font-size:12.5px; margin-bottom:14px;">
+            Past months are archived to a CSV file automatically and removed from the live records to
+            keep things fast. You can also archive a month manually, or just download a snapshot without
+            deleting anything.
+          </div>
+          <div id="monthsList"></div>
+
+          <h3 style="font-size:13px; margin: 18px 0 8px; color:var(--text-dim);">Archived files</h3>
+          <div id="archiveFilesList"></div>
+        </div>
+      </div>
+
+      <!-- HELP TAB -->
+      <div class="admin-panel" id="panel-help">
+        <div style="max-width:720px;">
+
+          <div style="font-size:16px; font-weight:800; margin-bottom:6px;">Admin panel quick reference</div>
+          <p class="sub" style="margin-bottom:18px;">
+            Looking for the staff-facing "how to loan/return a car" guide instead? That's on the
+            <a href="index.html">dashboard</a> itself, under its "?" Help button - no login needed.
+          </p>
+
+          <div class="help-block">
+            <div style="font-size:14px; font-weight:800; margin-bottom:6px;">Overview tab</div>
+            <p>A snapshot of the whole fleet - total cars, availability, and how many are loaned per
+              team. Also where the loan inspection mode (Quick vs Detailed) is set for the dashboard.</p>
+          </div>
+
+          <div class="help-block">
+            <div style="font-size:14px; font-weight:800; margin-bottom:6px;">Cars tab</div>
+            <p>Add cars one at a time or bulk-import via CSV. Edit a car to update its details, manage
+              its allocation (leave it blank to keep a car hidden from the dashboard until it's ready),
+              and attach documents (Insurance, Mulkiya/Registration, Airport Permit, Other - up to 4 per
+              car). If a car is loaned and the staff member forgot to return it in the app, use the
+              <strong>Return</strong> button here.</p>
+          </div>
+
+          <div class="help-block">
+            <div style="font-size:14px; font-weight:800; margin-bottom:6px;">Staff tab</div>
+            <p>Add staff manually or bulk-import via CSV (staff number in column A, name in column B).
+              Names can be edited any time.</p>
+          </div>
+
+          <div class="help-block">
+            <div style="font-size:14px; font-weight:800; margin-bottom:6px;">Records tab</div>
+            <p>Every loan is logged here with the duty team, timestamps, and a link to view the full
+              vehicle inspection that was completed at pickup. Filter by date, team, staff number, or
+              car, and export to CSV any time.</p>
+          </div>
+
+          <div class="help-block">
+            <div style="font-size:14px; font-weight:800; margin-bottom:6px;">Monthly archives</div>
+            <p>Past months are archived to a downloadable CSV file and cleared from the live system
+              automatically to keep things fast (this also happens automatically in the background).
+              You can also archive a month manually, or just download a snapshot without deleting
+              anything. All archived files stay listed and downloadable here.</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CAR MODAL -->
+<div class="modal-overlay center-on-desktop" id="editCarModalOverlay">
+  <div class="modal modal-center">
+    <button class="close-x" onclick="closeAdminModal('editCarModalOverlay')">&times;</button>
+    <h2>Edit car</h2>
+    <div class="sub">Update car details</div>
+    <div class="field">
+      <label>Car #</label>
+      <input type="text" id="editCarNumber">
+    </div>
+    <div class="field">
+      <label>Reg #</label>
+      <input type="text" id="editRegNumber">
+    </div>
+    <div class="field">
+      <label>Allocation</label>
+      <select id="editAllocation"></select>
+    </div>
+    <div class="error-msg" id="editCarError" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAdminModal('editCarModalOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEditCar()">Save changes</button>
+    </div>
+
+    <div style="margin-top:22px; padding-top:16px; border-top:1px solid var(--border);">
+      <h2 style="font-size:15px; margin-bottom:10px;">Documents</h2>
+      <div id="carDocumentsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT STAFF MODAL -->
+<div class="modal-overlay center-on-desktop" id="editStaffModalOverlay">
+  <div class="modal modal-center">
+    <button class="close-x" onclick="closeAdminModal('editStaffModalOverlay')">&times;</button>
+    <h2>Edit staff</h2>
+    <div class="sub" id="editStaffSub"></div>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="editStaffName">
+    </div>
+    <div class="error-msg" id="editStaffError" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAdminModal('editStaffModalOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEditStaff()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- INSPECTION VIEW MODAL -->
+<div class="modal-overlay center-on-desktop" id="inspectionModalOverlay">
+  <div class="modal modal-center">
+    <button class="close-x" onclick="closeAdminModal('inspectionModalOverlay')">&times;</button>
+    <h2>Vehicle inspection</h2>
+    <div class="sub" id="inspectionSub"></div>
+    <div id="inspectionContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>

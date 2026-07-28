@@ -1,0 +1,608 @@
+let cars = [];
+let settings = { inspection_mode: 'quick' };
+
+let activeCarId = null;       // car the action sheet / modals are currently working with
+let loanTargetCarId = null;
+let returnTargetCarId = null;
+let remarkTargetCarId = null;
+
+let verifiedStaff = null;         // for loan flow
+let verifiedReturnStaff = null;   // for return flow
+let verifiedRemarkStaff = null;   // for remark flow
+
+const ALLOCATIONS = [
+  'LSM / LMM',
+  'B1 ENGINEER / TECHNICIAN',
+  'B2 ENGINEER',
+  'CAT A TECHNICIAN',
+  'CABIN TEAM'
+];
+
+const FUEL_LEVELS = ['Full', '3/4', 'Half', '1/4', 'Empty'];
+const MAX_REMARKS_PER_CAR = 5;
+
+let quickAllOk = true;
+let extOk = true;
+let intOk = true;
+let selectedFuel = null;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString('en-GB', { timeZone: 'Asia/Dubai', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'loanModalOverlay') resetLoanModal();
+  if (id === 'returnModalOverlay') resetReturnModal();
+  if (id === 'remarkModalOverlay') resetRemarkModal();
+}
+
+// ---------------- Header: date + duty status ----------------
+
+function updateDateLabel() {
+  const now = new Date();
+  document.getElementById('dateLabel').textContent = now.toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+async function updateDutyPill() {
+  try {
+    const res = await fetch('/api/loans/duty/current');
+    const duty = await res.json();
+    const range = duty.isDay ? '06:00–18:00' : '18:00–06:00';
+    document.getElementById('dutyLabel').innerHTML = duty.team
+      ? `<strong>Team ${duty.team}</strong> on duty · ${duty.isDay ? 'Day' : 'Night'} shift · ${range}`
+      : '--';
+  } catch (e) { /* dashboard still works without this */ }
+}
+
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    settings = await res.json();
+  } catch (e) { /* fall back to default quick mode */ }
+}
+
+updateDateLabel();
+updateDutyPill();
+setInterval(updateDateLabel, 30000);
+setInterval(updateDutyPill, 30000);
+
+// ---------------- Car grid ----------------
+
+async function loadCars() {
+  const res = await fetch('/api/cars');
+  cars = await res.json();
+  renderCars();
+}
+
+function renderCars() {
+  const grid = document.getElementById('carGrid');
+  const empty = document.getElementById('emptyState');
+  grid.innerHTML = '';
+
+  const visibleCars = cars.filter(c => c.allocation && c.allocation.trim());
+
+  if (visibleCars.length === 0) {
+    empty.style.display = 'block';
+    document.getElementById('countAvailable').textContent = 0;
+    document.getElementById('countLoaned').textContent = 0;
+    document.getElementById('countMaintenance').textContent = 0;
+    return;
+  }
+  empty.style.display = 'none';
+
+  let available = 0, loaned = 0, maintenance = 0;
+  visibleCars.forEach(car => {
+    if (car.status === 'available') available++;
+    else if (car.status === 'loaned') loaned++;
+    else maintenance++;
+  });
+  document.getElementById('countAvailable').textContent = available;
+  document.getElementById('countLoaned').textContent = loaned;
+  document.getElementById('countMaintenance').textContent = maintenance;
+
+  const groups = {};
+  ALLOCATIONS.forEach(a => { groups[a] = []; });
+  groups['Unassigned'] = [];
+
+  visibleCars.forEach(car => {
+    const key = ALLOCATIONS.includes(car.allocation) ? car.allocation : 'Unassigned';
+    groups[key].push(car);
+  });
+
+  const naturalSort = (a, b) => a.car_number.localeCompare(b.car_number, undefined, { numeric: true, sensitivity: 'base' });
+  Object.values(groups).forEach(group => group.sort(naturalSort));
+
+  const orderedKeys = [...ALLOCATIONS, 'Unassigned'];
+
+  orderedKeys.forEach(key => {
+    const carsInGroup = groups[key];
+    if (carsInGroup.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'allocation-section';
+
+    const header = document.createElement('div');
+    header.className = 'allocation-header';
+    header.innerHTML = `<span>${escapeHtml(key)}</span><span class="badge-count">${carsInGroup.length}</span>`;
+    section.appendChild(header);
+
+    const tileGrid = document.createElement('div');
+    tileGrid.className = 'tile-grid';
+
+    carsInGroup.forEach(car => tileGrid.appendChild(buildCarTile(car)));
+
+    section.appendChild(tileGrid);
+    grid.appendChild(section);
+  });
+}
+
+function buildCarTile(car) {
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = `car-tile ${car.status}`;
+  tile.onclick = () => openCarSheet(car.id);
+
+  const remarks = car.remarks || [];
+  const dotHtml = remarks.length ? '<span class="remark-dot"></span>' : '';
+
+  tile.innerHTML = `
+    ${dotHtml}
+    <div class="tile-num">${escapeHtml(car.car_number)}</div>
+    <div class="tile-reg">${escapeHtml(car.reg_number)}</div>
+  `;
+  return tile;
+}
+
+// ---------------- Car action sheet ----------------
+
+const STATUS_LABELS = { available: 'Free', loaned: 'Out', maintenance: 'Off duty' };
+
+function openCarSheet(carId) {
+  activeCarId = carId;
+  const car = cars.find(c => c.id === carId);
+  if (!car) return;
+
+  document.getElementById('sheetCarNum').textContent = `Car ${car.car_number}`;
+  const badge = document.getElementById('sheetStatusBadge');
+  badge.textContent = STATUS_LABELS[car.status] || car.status;
+  badge.className = `status-badge ${car.status}`;
+  document.getElementById('sheetCarSub').textContent = `Reg # ${car.reg_number} · ${car.allocation || 'Unassigned'}`;
+
+  const loanInfoDiv = document.getElementById('sheetLoanInfo');
+  if (car.status === 'loaned' && car.loaned_to_staff_number) {
+    loanInfoDiv.innerHTML = `<div class="loan-info">With <strong>${escapeHtml(car.loaned_to_name)}</strong> (#${escapeHtml(car.loaned_to_staff_number)}) since ${fmtTime(car.loaned_at)}</div>`;
+  } else {
+    loanInfoDiv.innerHTML = '';
+  }
+
+  const remarks = car.remarks || [];
+  const remarksDiv = document.getElementById('sheetRemarks');
+  if (remarks.length) {
+    remarksDiv.innerHTML = remarks.map(r => `
+      <div class="remark-banner">
+        ${escapeHtml(r.remark_text)}
+        <div class="meta">${r.staff_name ? escapeHtml(r.staff_name) + ', ' : ''}${fmtTime(r.created_at)}</div>
+      </div>
+    `).join('');
+  } else {
+    remarksDiv.innerHTML = '';
+  }
+
+  document.getElementById('sheetTakeBtn').style.display = car.status === 'available' ? 'block' : 'none';
+  document.getElementById('sheetReturnBtn').style.display = car.status === 'loaned' ? 'block' : 'none';
+
+  document.getElementById('carSheetOverlay').classList.add('open');
+}
+
+function sheetOpenLoan() {
+  closeModal('carSheetOverlay');
+  openLoanModal(activeCarId);
+}
+function sheetOpenReturn() {
+  closeModal('carSheetOverlay');
+  openReturnModal(activeCarId);
+}
+function sheetOpenRemark() {
+  closeModal('carSheetOverlay');
+  openRemarkModal(activeCarId);
+}
+
+// ---------------- Loan flow ----------------
+
+function resetInspectionState() {
+  quickAllOk = true;
+  extOk = true;
+  intOk = true;
+  selectedFuel = null;
+}
+
+function renderInspectionUI() {
+  const quickBlock = document.getElementById('quickInspectionBlock');
+  const detailedBlock = document.getElementById('detailedInspectionBlock');
+
+  if (settings.inspection_mode === 'detailed') {
+    quickBlock.style.display = 'none';
+    detailedBlock.style.display = 'block';
+    renderExtIntSwitches();
+    renderFuelSelector();
+  } else {
+    quickBlock.style.display = 'block';
+    detailedBlock.style.display = 'none';
+    renderQuickSwitch();
+  }
+}
+
+function renderQuickSwitch() {
+  const sw = document.getElementById('quickAllOkSwitch');
+  sw.classList.toggle('on', quickAllOk);
+  document.getElementById('quickIssueField').style.display = quickAllOk ? 'none' : 'block';
+}
+function toggleQuickAllOk() {
+  quickAllOk = !quickAllOk;
+  renderQuickSwitch();
+}
+
+function renderExtIntSwitches() {
+  document.getElementById('extOkSwitch').classList.toggle('on', extOk);
+  document.getElementById('intOkSwitch').classList.toggle('on', intOk);
+}
+function toggleExtOk() { extOk = !extOk; renderExtIntSwitches(); }
+function toggleIntOk() { intOk = !intOk; renderExtIntSwitches(); }
+
+function renderFuelSelector() {
+  const container = document.getElementById('fuelSelector');
+  container.innerHTML = FUEL_LEVELS.map(level => `
+    <div class="fuel-option ${selectedFuel === level ? 'active' : ''}" onclick="setFuelLevel('${level}')">${level}</div>
+  `).join('');
+}
+function setFuelLevel(level) {
+  selectedFuel = level;
+  renderFuelSelector();
+}
+
+function openLoanModal(carId) {
+  loanTargetCarId = carId;
+  const car = cars.find(c => c.id === carId);
+  document.getElementById('loanCarLabel').textContent = `Take Car ${car.car_number}`;
+  document.getElementById('loanCarSub').textContent = `Reg # ${car.reg_number} · enter your details below`;
+
+  resetInspectionState();
+  renderInspectionUI();
+
+  document.getElementById('loanModalOverlay').classList.add('open');
+}
+
+function resetLoanModal() {
+  loanTargetCarId = null;
+  verifiedStaff = null;
+  document.getElementById('loanStaffNumber').value = '';
+  document.getElementById('loanStaffConfirm').innerHTML = '';
+  document.getElementById('newStaffNameField').style.display = 'none';
+  document.getElementById('newStaffName').value = '';
+  document.getElementById('loanError').style.display = 'none';
+  document.getElementById('quickIssueNote').value = '';
+  document.getElementById('detailedNotes').value = '';
+}
+
+let staffCheckTimeout;
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loanStaffNumber').addEventListener('input', (e) => {
+    clearTimeout(staffCheckTimeout);
+    const val = e.target.value.trim();
+    verifiedStaff = null;
+    document.getElementById('loanStaffConfirm').innerHTML = '';
+    document.getElementById('newStaffNameField').style.display = 'none';
+    if (!val) return;
+    staffCheckTimeout = setTimeout(() => checkStaff(val), 400);
+  });
+
+  document.getElementById('returnStaffNumber').addEventListener('input', (e) => {
+    clearTimeout(staffCheckTimeout);
+    const val = e.target.value.trim();
+    verifiedReturnStaff = null;
+    document.getElementById('returnStaffConfirm').innerHTML = '';
+    if (!val) return;
+    staffCheckTimeout = setTimeout(() => checkReturnStaff(val), 400);
+  });
+
+  document.getElementById('remarkStaffNumber').addEventListener('input', (e) => {
+    clearTimeout(staffCheckTimeout);
+    const val = e.target.value.trim();
+    verifiedRemarkStaff = null;
+    document.getElementById('remarkStaffConfirm').innerHTML = '';
+    if (!val) return;
+    staffCheckTimeout = setTimeout(() => checkRemarkStaff(val), 400);
+  });
+});
+
+async function checkStaff(staffNumber) {
+  const res = await fetch(`/api/staff/verify/${encodeURIComponent(staffNumber)}`);
+  const data = await res.json();
+  const confirmDiv = document.getElementById('loanStaffConfirm');
+  const newField = document.getElementById('newStaffNameField');
+
+  if (data.found) {
+    verifiedStaff = data.staff;
+    newField.style.display = 'none';
+    confirmDiv.innerHTML = `<div class="staff-confirm">&#10003; ${escapeHtml(data.staff.name)}</div>`;
+  } else {
+    verifiedStaff = null;
+    confirmDiv.innerHTML = `<div class="staff-confirm new">Staff number not found. Enter name below to register it.</div>`;
+    newField.style.display = 'block';
+  }
+}
+
+async function submitLoan() {
+  const errDiv = document.getElementById('loanError');
+  errDiv.style.display = 'none';
+
+  const carId = loanTargetCarId;
+  const staffNumber = document.getElementById('loanStaffNumber').value.trim();
+
+  if (!staffNumber) { errDiv.textContent = 'Enter your staff number.'; errDiv.style.display = 'block'; return; }
+
+  if (settings.inspection_mode === 'detailed' && !selectedFuel) {
+    errDiv.textContent = 'Select the fuel level.';
+    errDiv.style.display = 'block';
+    return;
+  }
+
+  let staffName;
+  if (verifiedStaff) {
+    staffName = verifiedStaff.name;
+  } else {
+    staffName = document.getElementById('newStaffName').value.trim();
+    if (!staffName) { errDiv.textContent = 'Staff number not found. Please enter your name to register it.'; errDiv.style.display = 'block'; return; }
+    const addRes = await fetch('/api/staff', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staff_number: staffNumber, name: staffName })
+    });
+    if (!addRes.ok) {
+      const err = await addRes.json();
+      errDiv.textContent = err.error || 'Could not register staff number.';
+      errDiv.style.display = 'block';
+      return;
+    }
+  }
+
+  let inspection;
+  if (settings.inspection_mode === 'detailed') {
+    inspection = {
+      mode: 'detailed',
+      exterior_ok: extOk,
+      interior_ok: intOk,
+      fuel_level: selectedFuel,
+      notes: document.getElementById('detailedNotes').value.trim()
+    };
+  } else {
+    inspection = {
+      mode: 'quick',
+      all_ok: quickAllOk,
+      fuel_level: null,
+      notes: quickAllOk ? '' : document.getElementById('quickIssueNote').value.trim()
+    };
+  }
+
+  const btn = document.getElementById('loanSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Processing...';
+
+  const res = await fetch('/api/loans/issue', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ car_id: carId, staff_number: staffNumber, staff_name: staffName, inspection })
+  });
+
+  btn.disabled = false; btn.textContent = 'Confirm & take car';
+
+  if (res.ok) {
+    closeModal('loanModalOverlay');
+    showToast('Car loaned successfully', 'success');
+    loadCars();
+  } else {
+    const err = await res.json();
+    errDiv.textContent = err.error || 'Something went wrong.';
+    errDiv.style.display = 'block';
+  }
+}
+
+// ---------------- Return flow ----------------
+
+function openReturnModal(carId) {
+  returnTargetCarId = carId;
+  const car = cars.find(c => c.id === carId);
+  document.getElementById('returnCarLabel').textContent = `Return Car ${car.car_number}`;
+  document.getElementById('returnCarSub').textContent = `Reg # ${car.reg_number}`;
+
+  const infoDiv = document.getElementById('returnLoanInfo');
+  if (car.loaned_to_staff_number) {
+    infoDiv.style.display = 'block';
+    infoDiv.textContent = `Currently with ${car.loaned_to_name} since ${fmtTime(car.loaned_at)}`;
+  } else {
+    infoDiv.style.display = 'none';
+  }
+
+  document.getElementById('returnStaffNumber').value = car.loaned_to_staff_number || '';
+  if (car.loaned_to_staff_number) checkReturnStaff(car.loaned_to_staff_number);
+
+  document.getElementById('returnModalOverlay').classList.add('open');
+}
+
+function resetReturnModal() {
+  returnTargetCarId = null;
+  verifiedReturnStaff = null;
+  document.getElementById('returnStaffNumber').value = '';
+  document.getElementById('returnStaffConfirm').innerHTML = '';
+  document.getElementById('returnError').style.display = 'none';
+}
+
+async function checkReturnStaff(staffNumber) {
+  const res = await fetch(`/api/staff/verify/${encodeURIComponent(staffNumber)}`);
+  const data = await res.json();
+  const confirmDiv = document.getElementById('returnStaffConfirm');
+  if (data.found) {
+    verifiedReturnStaff = data.staff;
+    confirmDiv.innerHTML = `<div class="staff-confirm">&#10003; ${escapeHtml(data.staff.name)}</div>`;
+  } else {
+    verifiedReturnStaff = null;
+    confirmDiv.innerHTML = `<div class="staff-confirm new">Staff number not found - you can still return the car.</div>`;
+  }
+}
+
+async function submitReturn() {
+  const errDiv = document.getElementById('returnError');
+  errDiv.style.display = 'none';
+
+  const staffNumber = document.getElementById('returnStaffNumber').value.trim();
+  if (!staffNumber) { errDiv.textContent = 'Enter the returning staff number.'; errDiv.style.display = 'block'; return; }
+
+  const btn = document.getElementById('returnSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Processing...';
+
+  const res = await fetch('/api/loans/return', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      car_id: returnTargetCarId,
+      returned_by_staff_number: staffNumber,
+      returned_by_name: verifiedReturnStaff ? verifiedReturnStaff.name : undefined
+    })
+  });
+
+  btn.disabled = false; btn.textContent = 'Confirm return';
+
+  if (res.ok) {
+    closeModal('returnModalOverlay');
+    showToast('Car returned successfully', 'success');
+    loadCars();
+  } else {
+    const err = await res.json();
+    errDiv.textContent = err.error || 'Something went wrong.';
+    errDiv.style.display = 'block';
+  }
+}
+
+// ---------------- Remark flow ----------------
+
+function openRemarkModal(carId) {
+  remarkTargetCarId = carId;
+  const car = cars.find(c => c.id === carId);
+  document.getElementById('remarkCarLabel').textContent = `Remark · Car ${car.car_number}`;
+
+  const currentBlock = document.getElementById('currentRemarkBlock');
+  const addBlock = document.getElementById('addRemarkBlock');
+  const remarks = car.remarks || [];
+
+  if (remarks.length) {
+    currentBlock.innerHTML = remarks.map(r => `
+      <div class="remark-banner" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <div>
+          ${escapeHtml(r.remark_text)}
+          <div class="meta">${r.staff_name ? escapeHtml(r.staff_name) + ', ' : ''}${fmtTime(r.created_at)}</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="clearRemark(${carId}, ${r.id})">Clear</button>
+      </div>
+    `).join('');
+  } else {
+    currentBlock.innerHTML = '';
+  }
+
+  if (remarks.length >= MAX_REMARKS_PER_CAR) {
+    addBlock.style.display = 'none';
+    currentBlock.innerHTML += `<div class="sub">Maximum of ${MAX_REMARKS_PER_CAR} remarks reached - clear one to add another.</div>`;
+  } else {
+    addBlock.style.display = 'block';
+  }
+
+  document.getElementById('remarkModalOverlay').classList.add('open');
+}
+
+function resetRemarkModal() {
+  remarkTargetCarId = null;
+  verifiedRemarkStaff = null;
+  document.getElementById('remarkStaffNumber').value = '';
+  document.getElementById('remarkText').value = '';
+  document.getElementById('remarkStaffConfirm').innerHTML = '';
+  document.getElementById('remarkError').style.display = 'none';
+}
+
+async function checkRemarkStaff(staffNumber) {
+  const res = await fetch(`/api/staff/verify/${encodeURIComponent(staffNumber)}`);
+  const data = await res.json();
+  const confirmDiv = document.getElementById('remarkStaffConfirm');
+  if (data.found) {
+    verifiedRemarkStaff = data.staff;
+    confirmDiv.innerHTML = `<div class="staff-confirm">&#10003; ${escapeHtml(data.staff.name)}</div>`;
+  } else {
+    verifiedRemarkStaff = null;
+    confirmDiv.innerHTML = `<div class="staff-confirm new">Staff number not found - remark will still be saved.</div>`;
+  }
+}
+
+async function submitRemark() {
+  const errDiv = document.getElementById('remarkError');
+  errDiv.style.display = 'none';
+
+  const staffNumber = document.getElementById('remarkStaffNumber').value.trim();
+  const remarkText = document.getElementById('remarkText').value.trim();
+
+  if (!remarkText) { errDiv.textContent = 'Enter a remark.'; errDiv.style.display = 'block'; return; }
+
+  const res = await fetch(`/api/cars/${remarkTargetCarId}/remarks`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      staff_number: staffNumber || null,
+      staff_name: verifiedRemarkStaff ? verifiedRemarkStaff.name : null,
+      remark_text: remarkText
+    })
+  });
+
+  if (res.ok) {
+    closeModal('remarkModalOverlay');
+    showToast('Remark saved', 'success');
+    loadCars();
+  } else {
+    const err = await res.json();
+    errDiv.textContent = err.error || 'Something went wrong.';
+    errDiv.style.display = 'block';
+  }
+}
+
+async function clearRemark(carId, remarkId) {
+  const res = await fetch(`/api/cars/${carId}/remarks/${remarkId}`, { method: 'DELETE' });
+  if (res.ok) {
+    showToast('Remark cleared', 'success');
+    await loadCars();
+    const stillHasCar = cars.find(c => c.id === carId);
+    if (stillHasCar) openRemarkModal(carId);
+  } else {
+    showToast('Could not clear remark', 'error');
+  }
+}
+
+// ---------------- Help ----------------
+
+function openHelpModal() {
+  document.getElementById('helpModalOverlay').classList.add('open');
+}
+
+// ---------------- Init ----------------
+
+(async function init() {
+  await loadSettings();
+  await loadCars();
+  setInterval(loadCars, 20000);
+})();
