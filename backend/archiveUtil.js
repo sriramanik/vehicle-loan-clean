@@ -54,7 +54,7 @@ function summarizeInspection(inspectionJson) {
 }
 
 const CSV_HEADER = [
-  'Shift Date', 'Shift', 'Team', 'Car #', 'Reg #',
+  'Shift Date', 'Shift', 'Duty Team', 'Staff Team', 'Car #', 'Reg #',
   'Issued To (Staff #)', 'Issued To (Name)', 'Issued At (Local Time)', 'Returned At (Local Time)',
   'Returned By (Staff #)', 'Returned By (Name)', 'Status',
   'Fuel At Pickup', 'Inspection Issues Noted', 'Inspection Remarks'
@@ -63,7 +63,7 @@ const CSV_HEADER = [
 function loanToRow(l) {
   const insp = summarizeInspection(l.inspection_data);
   return [
-    l.shift_date, l.shift, l.duty_team || '', l.car_number, l.reg_number,
+    l.shift_date, l.shift, l.duty_team || '', l.team || '', l.car_number, l.reg_number,
     l.staff_number, l.staff_name, fmtLocal(l.issued_at), fmtLocal(l.returned_at),
     l.returned_by_staff_number || '', l.returned_by_name || '', l.status,
     insp.fuel, insp.issues, insp.remarks

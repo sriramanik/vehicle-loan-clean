@@ -79,6 +79,17 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
 );
+
+-- One row per admin-panel change, for accountability. Admins aren't individually
+-- authenticated (there's still one shared password) - admin_name is a self-reported
+-- "acting as" name captured at login, sent with every admin request.
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_name TEXT NOT NULL,
+  action TEXT NOT NULL,
+  details TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 `);
 
 // Seed default settings if not already present

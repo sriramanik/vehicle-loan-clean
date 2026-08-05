@@ -76,8 +76,19 @@ async function loadSettings() {
   } catch (e) { /* fall back to default quick mode */ }
 }
 
+async function loadStaffTeams() {
+  try {
+    const res = await fetch('/api/loans/teams');
+    const teams = await res.json();
+    const select = document.getElementById('loanTeam');
+    select.innerHTML = '<option value="">Select your team...</option>' +
+      teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  } catch (e) { /* loan form still works, submit will just report the missing team */ }
+}
+
 updateDateLabel();
 updateDutyPill();
+loadStaffTeams();
 setInterval(updateDateLabel, 30000);
 setInterval(updateDutyPill, 30000);
 
@@ -154,14 +165,16 @@ function renderCars() {
 function buildCarTile(car) {
   const tile = document.createElement('button');
   tile.type = 'button';
-  tile.className = `car-tile ${car.status}`;
+  tile.className = `car-tile ${car.status}${car.is_overdue ? ' overdue' : ''}`;
   tile.onclick = () => openCarSheet(car.id);
 
   const remarks = car.remarks || [];
   const dotHtml = remarks.length ? '<span class="remark-dot"></span>' : '';
+  const overdueDotHtml = car.is_overdue ? '<span class="overdue-dot"></span>' : '';
 
   tile.innerHTML = `
     ${dotHtml}
+    ${overdueDotHtml}
     <div class="tile-num">${escapeHtml(car.car_number)}</div>
     <div class="tile-reg">${escapeHtml(car.reg_number)}</div>
   `;
@@ -185,7 +198,8 @@ function openCarSheet(carId) {
 
   const loanInfoDiv = document.getElementById('sheetLoanInfo');
   if (car.status === 'loaned' && car.loaned_to_staff_number) {
-    loanInfoDiv.innerHTML = `<div class="loan-info">With <strong>${escapeHtml(car.loaned_to_name)}</strong> (#${escapeHtml(car.loaned_to_staff_number)}) since ${fmtTime(car.loaned_at)}</div>`;
+    const overdueTag = car.is_overdue ? '<span class="overdue-tag">Overdue</span>' : '';
+    loanInfoDiv.innerHTML = `<div class="loan-info">With <strong>${escapeHtml(car.loaned_to_name)}</strong> (#${escapeHtml(car.loaned_to_staff_number)}) since ${fmtTime(car.loaned_at)}${overdueTag}</div>`;
   } else {
     loanInfoDiv.innerHTML = '';
   }
@@ -294,6 +308,7 @@ function resetLoanModal() {
   document.getElementById('loanStaffConfirm').innerHTML = '';
   document.getElementById('newStaffNameField').style.display = 'none';
   document.getElementById('newStaffName').value = '';
+  document.getElementById('loanTeam').value = '';
   document.getElementById('loanError').style.display = 'none';
   document.getElementById('quickIssueNote').value = '';
   document.getElementById('detailedNotes').value = '';
@@ -354,8 +369,10 @@ async function submitLoan() {
 
   const carId = loanTargetCarId;
   const staffNumber = document.getElementById('loanStaffNumber').value.trim();
+  const team = document.getElementById('loanTeam').value;
 
   if (!staffNumber) { errDiv.textContent = 'Enter your staff number.'; errDiv.style.display = 'block'; return; }
+  if (!team) { errDiv.textContent = 'Select your team.'; errDiv.style.display = 'block'; return; }
 
   if (settings.inspection_mode === 'detailed' && !selectedFuel) {
     errDiv.textContent = 'Select the fuel level.';
@@ -404,7 +421,7 @@ async function submitLoan() {
 
   const res = await fetch('/api/loans/issue', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ car_id: carId, staff_number: staffNumber, staff_name: staffName, inspection })
+    body: JSON.stringify({ car_id: carId, staff_number: staffNumber, staff_name: staffName, team, inspection })
   });
 
   btn.disabled = false; btn.textContent = 'Confirm & take car';

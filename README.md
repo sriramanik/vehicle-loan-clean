@@ -238,10 +238,16 @@ Visit `http://localhost:3000`.
 
 ## Notes / things you may want to extend later
 
-- Currently there's one shared admin password. If you want individual admin logins with
-  audit trails (who changed what), that's a natural next step.
-- The "Team" field on a loan is a free-text box — if your teams are a fixed list
-  (e.g. LSM, Engineer B1, Engineer B2, Cat A, Cabin), it could be turned into a dropdown to
-  keep records consistent.
-- No SMS/email notifications currently — could be added if you want reminders for cars
-  loaned for longer than expected.
+- **Admin accountability** — there's still one shared `ADMIN_PASSWORD` (no individual admin
+  accounts), but the login screen now also asks for a name, sent with every admin request and
+  recorded against changes in Admin → Activity (car/staff/settings/archive changes - who did
+  what, when). It's a change log for accountability, not real per-admin access control; full
+  individual logins with their own passwords would be the next step up if you need that.
+- **Team on a loan** — staff now pick their team (LSM, Engineer B1, Engineer B2, Cat A, Cabin)
+  from a fixed dropdown when taking a car, stored per loan and shown/filterable/exportable in
+  Admin → Records. This is separate from a car's own allocation group and from the auto-computed
+  A/B/C/D duty rotation.
+- **Overdue loans** — a loan is flagged "Overdue" (dashboard tile, car action sheet, Admin →
+  Cars, and an Admin → Overview KPI count) once it runs past the shift it was checked out for
+  (Day loans past 18:00, Night loans past 06:00 the next day) and hasn't been returned yet. This
+  is in-app only, no SMS/email — that'd be the natural next step if you want off-app reminders.

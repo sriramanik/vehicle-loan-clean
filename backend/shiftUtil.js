@@ -88,4 +88,22 @@ function getRosterForDate(shiftDateStr) {
   return roster;
 }
 
-module.exports = { getShiftInfo, getCurrentDuty, getRosterForDate, getUAEParts };
+// ---------------- Overdue loans ----------------
+// A loan is "overdue" once its own shift has ended (Day ends 18:00 UAE same day,
+// Night ends 06:00 UAE the following day) and it's still active - i.e. it ran past
+// the shift it was checked out for. Returns the shift's end boundary as a UTC Date.
+function shiftEndUTC(shiftDateStr, isDay) {
+  const [y, m, d] = shiftDateStr.split('-').map(Number);
+  return isDay
+    ? new Date(Date.UTC(y, m - 1, d, 14, 0, 0))     // 18:00 UAE = 14:00 UTC, same day
+    : new Date(Date.UTC(y, m - 1, d + 1, 2, 0, 0));  // 06:00 UAE next day = 02:00 UTC next day
+}
+
+// loan needs { status, shift, shift_date } - matches the loans table row shape.
+function isLoanOverdue(loan, now = new Date()) {
+  if (!loan || loan.status !== 'active' || !loan.shift_date || !loan.shift) return false;
+  const isDay = loan.shift.startsWith('Day');
+  return now.getTime() > shiftEndUTC(loan.shift_date, isDay).getTime();
+}
+
+module.exports = { getShiftInfo, getCurrentDuty, getRosterForDate, getUAEParts, isLoanOverdue };

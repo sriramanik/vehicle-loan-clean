@@ -1,4 +1,5 @@
 let adminPassword = sessionStorage.getItem('adminPassword') || '';
+let adminName = sessionStorage.getItem('adminName') || '';
 
 const ALLOCATIONS = [
   'LSM / LMM',
@@ -47,6 +48,7 @@ function fmtTime(iso) {
 async function adminFetch(url, options = {}) {
   options.headers = options.headers || {};
   options.headers['x-admin-password'] = adminPassword;
+  options.headers['x-admin-name'] = adminName;
   const res = await fetch(url, options);
   if (res.status === 401) {
     sessionStorage.removeItem('adminPassword');
@@ -59,12 +61,14 @@ async function adminFetch(url, options = {}) {
 function showLogin() {
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('adminApp').style.display = 'none';
+  document.getElementById('adminNameInput').value = adminName;
 }
 
 function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('adminApp').style.display = 'block';
   populateAllocationSelects();
+  populateStaffTeamFilter();
   loadOverview();
   loadCars();
   loadStaff();
@@ -74,10 +78,27 @@ function showApp() {
   loadSettingsIntoUI();
 }
 
+async function populateStaffTeamFilter() {
+  try {
+    const res = await fetch('/api/loans/teams');
+    const teams = await res.json();
+    const select = document.getElementById('filterStaffTeam');
+    select.innerHTML = '<option value="">All staff teams</option>' +
+      teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  } catch (e) { /* filter just stays empty */ }
+}
+
 async function login() {
+  const name = document.getElementById('adminNameInput').value.trim();
   const pw = document.getElementById('passwordInput').value;
   const errDiv = document.getElementById('loginError');
   errDiv.style.display = 'none';
+
+  if (!name) {
+    errDiv.textContent = 'Enter your name - it\'s recorded against any changes you make.';
+    errDiv.style.display = 'block';
+    return;
+  }
 
   const res = await fetch('/api/admin/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -86,7 +107,9 @@ async function login() {
 
   if (res.ok) {
     adminPassword = pw;
+    adminName = name;
     sessionStorage.setItem('adminPassword', pw);
+    sessionStorage.setItem('adminName', name);
     showApp();
   } else {
     errDiv.textContent = 'Incorrect password.';
@@ -115,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tab.classList.add('active');
       document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
       if (tab.dataset.tab === 'overview') loadOverview();
+      if (tab.dataset.tab === 'activity') loadActivity();
     });
   });
 });
@@ -140,6 +164,9 @@ async function loadOverview() {
     document.getElementById('kpiAvailable').textContent = available;
     document.getElementById('kpiLoaned').textContent = loaned;
     document.getElementById('kpiMaintenance').textContent = maintenance;
+
+    const overdueTotal = publicCars.filter(c => c.is_overdue).length;
+    document.getElementById('kpiOverdue').textContent = overdueTotal;
 
     const remarksTotal = publicCars.reduce((sum, c) => sum + ((c.remarks || []).length), 0);
     document.getElementById('kpiRemarks').textContent = remarksTotal;
@@ -276,8 +303,9 @@ async function loadCars() {
 
     let statusCell;
     if (car.status === 'loaned') {
+      const overdueTag = withLoan.is_overdue ? '<span class="overdue-tag">Overdue</span>' : '';
       statusCell = `
-        <span class="status-badge loaned">Loaned Out</span>
+        <span class="status-badge loaned">Loaned Out</span>${overdueTag}
         <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="returnCarAdmin(${car.id})">Return</button>
       `;
     } else {
@@ -552,12 +580,14 @@ let allRecordsCache = [];
 async function loadRecords() {
   const date = document.getElementById('filterDate').value;
   const team = document.getElementById('filterTeam').value;
+  const staffTeam = document.getElementById('filterStaffTeam').value;
   const staff = document.getElementById('filterStaff').value.trim();
   const car = document.getElementById('filterCar').value.trim();
 
   const params = new URLSearchParams();
   if (date) params.set('date', date);
   if (team) params.set('team', team);
+  if (staffTeam) params.set('staff_team', staffTeam);
   if (staff) params.set('staff_number', staff);
   if (car) params.set('car_number', car);
 
@@ -571,6 +601,7 @@ async function loadRecords() {
       <td>${l.shift_date}</td>
       <td>${l.shift}</td>
       <td>${l.duty_team ? 'Team ' + escapeHtml(l.duty_team) : '—'}</td>
+      <td>${l.team ? escapeHtml(l.team) : '—'}</td>
       <td>#${escapeHtml(l.car_number)} · ${escapeHtml(l.reg_number)}</td>
       <td>${escapeHtml(l.staff_number)} · ${escapeHtml(l.staff_name)}</td>
       <td>${fmtTime(l.issued_at)}</td>
@@ -579,7 +610,7 @@ async function loadRecords() {
       <td><span class="status-badge ${l.status === 'active' ? 'loaned' : 'available'}">${l.status === 'active' ? 'Loaned Out' : 'Returned'}</span></td>
       <td>${l.inspection_data ? `<button class="btn btn-outline btn-sm" onclick="viewInspection(${l.id})">View</button>` : '—'}</td>
     </tr>
-  `).join('') || `<tr><td colspan="10" style="text-align:center; color:var(--text-dim);">No records found</td></tr>`;
+  `).join('') || `<tr><td colspan="11" style="text-align:center; color:var(--text-dim);">No records found</td></tr>`;
 }
 
 function viewInspection(loanId) {
@@ -644,9 +675,11 @@ function viewInspection(loanId) {
 function exportCsv() {
   const date = document.getElementById('filterDate').value;
   const team = document.getElementById('filterTeam').value;
+  const staffTeam = document.getElementById('filterStaffTeam').value;
   const params = new URLSearchParams();
   if (date) params.set('date', date);
   if (team) params.set('team', team);
+  if (staffTeam) params.set('staff_team', staffTeam);
   const url = `/api/admin/loans/export?${params.toString()}`;
 
   adminFetch(url).then(async res => {
@@ -741,4 +774,23 @@ function downloadArchiveFile(filename) {
     link.download = filename;
     link.click();
   });
+}
+
+// ---------------- ACTIVITY LOG ----------------
+async function loadActivity() {
+  const tbody = document.getElementById('activityTableBody');
+  try {
+    const res = await adminFetch('/api/admin/audit-log');
+    const entries = await res.json();
+    tbody.innerHTML = entries.map(e => `
+      <tr>
+        <td style="white-space:nowrap;">${fmtTime(e.created_at)}</td>
+        <td>${escapeHtml(e.admin_name)}</td>
+        <td>${escapeHtml(e.action)}</td>
+        <td>${escapeHtml(e.details || '')}</td>
+      </tr>
+    `).join('') || `<tr><td colspan="4" style="text-align:center; color:var(--text-dim);">No activity recorded yet.</td></tr>`;
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-dim);">Could not load activity log.</td></tr>`;
+  }
 }

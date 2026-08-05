@@ -1,18 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { getShiftInfo, getCurrentDuty } = require('../shiftUtil');
+const { getShiftInfo, getCurrentDuty, isLoanOverdue } = require('../shiftUtil');
+const { STAFF_TEAMS } = require('../staffTeams');
 
 // Current on-duty team + shift, for the dashboard header
 router.get('/duty/current', (req, res) => {
   res.json(getCurrentDuty(new Date()));
 });
 
+// The fixed list of staff teams, for the loan form's "your team" dropdown
+router.get('/teams', (req, res) => {
+  res.json(STAFF_TEAMS);
+});
+
 // Issue a car (loan)
 router.post('/issue', (req, res) => {
-  const { car_id, staff_number, staff_name, inspection } = req.body;
+  const { car_id, staff_number, staff_name, team, inspection } = req.body;
   if (!car_id || !staff_number || !staff_name) {
     return res.status(400).json({ error: 'car_id, staff_number, staff_name are required' });
+  }
+  if (!team || !STAFF_TEAMS.includes(team)) {
+    return res.status(400).json({ error: `team is required and must be one of: ${STAFF_TEAMS.join(', ')}` });
   }
 
   const car = db.prepare('SELECT * FROM cars WHERE id = ?').get(car_id);
@@ -26,12 +35,19 @@ router.post('/issue', (req, res) => {
   const inspectionJson = inspection ? JSON.stringify(inspection) : null;
 
   const insert = db.prepare(`
-    INSERT INTO loans (car_id, car_number, reg_number, staff_number, staff_name, duty_team, shift, shift_date, issued_at, status, inspection_data)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+    INSERT INTO loans (car_id, car_number, reg_number, staff_number, staff_name, team, duty_team, shift, shift_date, issued_at, status, inspection_data)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
   `);
-  const result = insert.run(car.id, car.car_number, car.reg_number, staff_number.trim(), staff_name.trim(), duty_team, shift, shift_date, issuedAt, inspectionJson);
+  const markLoaned = db.prepare(`UPDATE cars SET status = 'loaned' WHERE id = ?`);
 
-  db.prepare(`UPDATE cars SET status = 'loaned' WHERE id = ?`).run(car.id);
+  // Insert + status flip happen atomically so a crash mid-request can never leave a car
+  // marked 'loaned' with no matching loan row, or vice versa.
+  const issueLoan = db.transaction(() => {
+    const result = insert.run(car.id, car.car_number, car.reg_number, staff_number.trim(), staff_name.trim(), team, duty_team, shift, shift_date, issuedAt, inspectionJson);
+    markLoaned.run(car.id);
+    return result;
+  });
+  const result = issueLoan();
 
   res.json({ success: true, loan_id: result.lastInsertRowid, shift, shift_date, duty_team, issued_at: issuedAt });
 });
@@ -46,12 +62,16 @@ router.post('/return', (req, res) => {
 
   const returnedAt = new Date().toISOString();
 
-  db.prepare(`
+  const closeLoan = db.prepare(`
     UPDATE loans SET status = 'returned', returned_at = ?, returned_by_staff_number = ?, returned_by_name = ?
     WHERE id = ?
-  `).run(returnedAt, returned_by_staff_number || loan.staff_number, returned_by_name || loan.staff_name, loan.id);
+  `);
+  const markAvailable = db.prepare(`UPDATE cars SET status = 'available' WHERE id = ?`);
 
-  db.prepare(`UPDATE cars SET status = 'available' WHERE id = ?`).run(car_id);
+  db.transaction(() => {
+    closeLoan.run(returnedAt, returned_by_staff_number || loan.staff_number, returned_by_name || loan.staff_name, loan.id);
+    markAvailable.run(car_id);
+  })();
 
   res.json({ success: true, returned_at: returnedAt });
 });
@@ -59,6 +79,8 @@ router.post('/return', (req, res) => {
 // Get active loans
 router.get('/active', (req, res) => {
   const loans = db.prepare(`SELECT * FROM loans WHERE status = 'active' ORDER BY issued_at DESC`).all();
+  const now = new Date();
+  loans.forEach(l => { l.is_overdue = isLoanOverdue(l, now); });
   res.json(loans);
 });
 

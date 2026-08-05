@@ -26,6 +26,10 @@
   --remark-text: oklch(0.4 0.1 65);
   --remark-dot: oklch(0.68 0.17 70);
 
+  --overdue-bg: oklch(0.93 0.08 35);
+  --overdue-text: oklch(0.45 0.19 30);
+  --overdue-dot: oklch(0.58 0.22 30);
+
   --error: oklch(0.55 0.19 25);
 
   --radius-card: 20px;
@@ -216,6 +220,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .car-tile.available { background: var(--available-bg); }
 .car-tile.loaned { background: var(--loaned-bg); }
 .car-tile.maintenance { background: var(--maintenance-bg); }
+.car-tile.loaned.overdue { background: var(--overdue-bg); box-shadow: 0 0 0 2px var(--overdue-dot) inset; }
 .car-tile:active { transform: scale(0.97); }
 
 .car-tile .tile-num { font-size: 20px; font-weight: 800; line-height: 1.1; }
@@ -227,6 +232,29 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   border-radius: 50%;
   background: var(--remark-dot);
   box-shadow: 0 0 0 2px white;
+}
+.car-tile .overdue-dot {
+  position: absolute;
+  top: 8px; left: 8px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--overdue-dot);
+  box-shadow: 0 0 0 2px white;
+}
+
+/* Small inline "OVERDUE" tag, used next to loan info in the action sheet, tables, etc. */
+.overdue-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--overdue-bg);
+  color: var(--overdue-text);
+  margin-left: 6px;
+  vertical-align: middle;
 }
 
 .empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); }
@@ -244,6 +272,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .status-badge.available { background: var(--available-bg); color: var(--available-text); }
 .status-badge.loaned { background: var(--loaned-bg); color: var(--loaned-text); }
 .status-badge.maintenance { background: var(--maintenance-bg); color: var(--maintenance-text); }
+.status-badge.overdue { background: var(--overdue-bg); color: var(--overdue-text); }
 
 /* ---------------- Buttons ---------------- */
 .btn {
@@ -519,6 +548,8 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .kpi-card.maintenance .kpi-num, .kpi-card.maintenance .kpi-label { color: var(--maintenance-text); }
 .kpi-card.remarks { background: var(--remark-bg); }
 .kpi-card.remarks .kpi-num, .kpi-card.remarks .kpi-label { color: var(--remark-text); }
+.kpi-card.overdue { background: var(--overdue-bg); }
+.kpi-card.overdue .kpi-num, .kpi-card.overdue .kpi-label { color: var(--overdue-text); }
 
 .section-title { font-size: 14px; font-weight: 800; margin-bottom: 14px; }
 

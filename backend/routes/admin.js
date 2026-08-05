@@ -42,6 +42,20 @@ router.post('/login', (req, res) => {
 // Everything below requires the admin header
 router.use(adminAuth);
 
+// ---- AUDIT LOG ----
+// There's still one shared admin password (not individual logins), but the frontend asks
+// for a "your name" at login and sends it on every request via x-admin-name so changes are
+// at least attributable to a person, not just "admin".
+function logAudit(req, action, details) {
+  const adminName = (req.header('x-admin-name') || '').trim() || 'Unknown admin';
+  db.prepare('INSERT INTO audit_log (admin_name, action, details) VALUES (?, ?, ?)').run(adminName, action, details || null);
+}
+
+router.get('/audit-log', (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 200, 1000);
+  res.json(db.prepare('SELECT * FROM audit_log ORDER BY id DESC LIMIT ?').all(limit));
+});
+
 // ---- SETTINGS ----
 router.get('/settings', (req, res) => {
   const rows = db.prepare('SELECT key, value FROM settings').all();
@@ -61,6 +75,7 @@ router.put('/settings', (req, res) => {
 
   const upsert = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
   updates.forEach(([key, value]) => upsert.run(key, String(value)));
+  logAudit(req, 'settings.update', updates.map(([k, v]) => `${k} = ${v}`).join(', '));
   res.json({ success: true });
 });
 
@@ -75,6 +90,7 @@ router.post('/cars', (req, res) => {
   const result = db.prepare(`
     INSERT INTO cars (car_number, reg_number, allocation, status) VALUES (?, ?, ?, ?)
   `).run(car_number.trim(), reg_number.trim(), allocation || null, status || 'available');
+  logAudit(req, 'car.create', `Added car #${car_number.trim()} (${reg_number.trim()})`);
   res.json({ success: true, id: result.lastInsertRowid });
 });
 
@@ -109,6 +125,7 @@ router.post('/cars/import', upload.single('file'), (req, res) => {
   });
   tx(records);
 
+  logAudit(req, 'car.import', `Imported ${imported} car(s), skipped ${skipped}`);
   res.json({ success: true, imported, skipped });
 });
 
@@ -138,6 +155,7 @@ router.put('/cars/:id', (req, res) => {
     status ?? car.status,
     req.params.id
   );
+  logAudit(req, 'car.update', `Updated car #${car.car_number} (id ${car.id})`);
   res.json({ success: true });
 });
 
@@ -154,22 +172,31 @@ router.post('/cars/:id/return', (req, res) => {
   }
 
   const returnedAt = new Date().toISOString();
-  db.prepare(`
+  const closeLoan = db.prepare(`
     UPDATE loans SET status = 'returned', returned_at = ?, returned_by_staff_number = ?, returned_by_name = ?
     WHERE id = ?
-  `).run(returnedAt, loan.staff_number, loan.staff_name, loan.id);
-  db.prepare(`UPDATE cars SET status = 'available' WHERE id = ?`).run(car.id);
+  `);
+  const markAvailable = db.prepare(`UPDATE cars SET status = 'available' WHERE id = ?`);
 
+  db.transaction(() => {
+    closeLoan.run(returnedAt, loan.staff_number, loan.staff_name, loan.id);
+    markAvailable.run(car.id);
+  })();
+
+  logAudit(req, 'car.force_return', `Force-returned car #${car.car_number} (was with ${loan.staff_name} #${loan.staff_number})`);
   res.json({ success: true, returned_at: returnedAt });
 });
 
 router.delete('/cars/:id', (req, res) => {
+  const car = db.prepare('SELECT * FROM cars WHERE id = ?').get(req.params.id);
+  if (!car) return res.status(404).json({ error: 'Car not found' });
   const activeLoan = db.prepare(`SELECT * FROM loans WHERE car_id = ? AND status='active'`).get(req.params.id);
   if (activeLoan) return res.status(409).json({ error: 'Cannot delete a car that is currently on loan' });
   db.prepare('DELETE FROM cars WHERE id = ?').run(req.params.id);
   // clean up any uploaded documents for this car
   const carDir = path.join(db.docsDir, String(req.params.id));
   if (fs.existsSync(carDir)) fs.rmSync(carDir, { recursive: true, force: true });
+  logAudit(req, 'car.delete', `Deleted car #${car.car_number} (${car.reg_number})`);
   res.json({ success: true });
 });
 
@@ -202,6 +229,7 @@ router.post('/cars/:id/documents', docsUpload.single('file'), (req, res) => {
     ON CONFLICT(car_id, doc_type) DO UPDATE SET original_name = excluded.original_name, stored_filename = excluded.stored_filename, uploaded_at = datetime('now')
   `).run(car.id, docType, req.file.originalname, req.file.filename);
 
+  logAudit(req, 'car.document.upload', `Uploaded ${docType} for car #${car.car_number}`);
   res.json({ success: true });
 });
 
@@ -219,6 +247,7 @@ router.delete('/cars/:id/documents/:docType', (req, res) => {
   const filePath = path.join(db.docsDir, String(req.params.id), doc.stored_filename);
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   db.prepare('DELETE FROM car_documents WHERE id = ?').run(doc.id);
+  logAudit(req, 'car.document.delete', `Deleted ${req.params.docType} for car id ${req.params.id}`);
   res.json({ success: true });
 });
 
@@ -232,6 +261,7 @@ router.post('/staff', (req, res) => {
   if (!staff_number || !name) return res.status(400).json({ error: 'staff_number and name required' });
   try {
     db.prepare('INSERT INTO staff (staff_number, name) VALUES (?, ?)').run(String(staff_number).trim(), String(name).trim());
+    logAudit(req, 'staff.create', `Added staff #${String(staff_number).trim()} (${String(name).trim()})`);
     res.json({ success: true });
   } catch (err) {
     if (err.message.includes('UNIQUE')) return res.status(409).json({ error: 'Staff number already exists' });
@@ -243,11 +273,13 @@ router.put('/staff/:staffNumber', (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'name is required' });
   db.prepare('UPDATE staff SET name = ? WHERE staff_number = ?').run(name.trim(), req.params.staffNumber);
+  logAudit(req, 'staff.update', `Renamed staff #${req.params.staffNumber} to "${name.trim()}"`);
   res.json({ success: true });
 });
 
 router.delete('/staff/:staffNumber', (req, res) => {
   db.prepare('DELETE FROM staff WHERE staff_number = ?').run(req.params.staffNumber);
+  logAudit(req, 'staff.delete', `Deleted staff #${req.params.staffNumber}`);
   res.json({ success: true });
 });
 
@@ -279,12 +311,13 @@ router.post('/staff/import', upload.single('file'), (req, res) => {
   });
   tx(records);
 
+  logAudit(req, 'staff.import', `Imported ${imported} staff record(s), skipped ${skipped}`);
   res.json({ success: true, imported, skipped });
 });
 
 // ---- LOANS (history / manual correction) ----
 router.get('/loans', (req, res) => {
-  const { date, shift, staff_number, car_number, status, team, month } = req.query;
+  const { date, shift, staff_number, car_number, status, team, staff_team, month } = req.query;
   let query = 'SELECT * FROM loans WHERE 1=1';
   const params = [];
   if (date) { query += ' AND shift_date = ?'; params.push(date); }
@@ -293,6 +326,7 @@ router.get('/loans', (req, res) => {
   if (car_number) { query += ' AND car_number = ?'; params.push(car_number); }
   if (status) { query += ' AND status = ?'; params.push(status); }
   if (team) { query += ' AND duty_team = ?'; params.push(team); }
+  if (staff_team) { query += ' AND team = ?'; params.push(staff_team); }
   if (month) { query += ' AND shift_date LIKE ?'; params.push(`${month}%`); }
   query += ' ORDER BY issued_at DESC';
   res.json(db.prepare(query).all(...params));
@@ -300,12 +334,13 @@ router.get('/loans', (req, res) => {
 
 // Export CSV (optionally filtered by date/team/month)
 router.get('/loans/export', (req, res) => {
-  const { date, shift, team, month } = req.query;
+  const { date, shift, team, staff_team, month } = req.query;
   let query = 'SELECT * FROM loans WHERE 1=1';
   const params = [];
   if (date) { query += ' AND shift_date = ?'; params.push(date); }
   if (shift) { query += ' AND shift LIKE ?'; params.push(`%${shift}%`); }
   if (team) { query += ' AND duty_team = ?'; params.push(team); }
+  if (staff_team) { query += ' AND team = ?'; params.push(staff_team); }
   if (month) { query += ' AND shift_date LIKE ?'; params.push(`${month}%`); }
   query += ' ORDER BY issued_at DESC';
   const loans = db.prepare(query).all(...params);
@@ -337,6 +372,7 @@ router.post('/archives/:month/create', (req, res) => {
   if (!/^\d{4}-\d{2}$/.test(req.params.month)) return res.status(400).json({ error: 'Invalid month format, expected YYYY-MM' });
   try {
     const result = archiveUtil.archiveAndClearMonth(req.params.month);
+    logAudit(req, 'archive.create', `Archived ${result.archived} record(s) for ${req.params.month}`);
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(400).json({ error: err.message });

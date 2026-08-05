@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { isLoanOverdue } = require('../shiftUtil');
 
 const MAX_REMARKS_PER_CAR = 5;
 
@@ -9,15 +10,20 @@ router.get('/', (req, res) => {
   const cars = db.prepare(`
     SELECT c.*,
       l.id as active_loan_id, l.staff_number as loaned_to_staff_number,
-      l.staff_name as loaned_to_name, l.issued_at as loaned_at, l.shift as loan_shift
+      l.staff_name as loaned_to_name, l.issued_at as loaned_at, l.shift as loan_shift,
+      l.shift_date as loan_shift_date
     FROM cars c
     LEFT JOIN loans l ON l.car_id = c.id AND l.status = 'active'
     ORDER BY c.car_number
   `).all();
 
   const remarksStmt = db.prepare('SELECT * FROM car_remarks WHERE car_id = ? ORDER BY created_at ASC');
+  const now = new Date();
   cars.forEach(car => {
     car.remarks = remarksStmt.all(car.id);
+    car.is_overdue = car.status === 'loaned'
+      ? isLoanOverdue({ status: 'active', shift: car.loan_shift, shift_date: car.loan_shift_date }, now)
+      : false;
   });
 
   res.json(cars);
