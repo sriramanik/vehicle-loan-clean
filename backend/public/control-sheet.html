@@ -4,24 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vehicle Control Sheet · Air Arabia</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* -------- screen controls (hidden when printing) -------- */
+/* ============ TOOLBAR (screen only) ============ */
 .cs-toolbar {
   background: #1a1a2e;
   color: #fff;
-  padding: 12px 20px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  font-family: 'Manrope', Arial, sans-serif;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
 }
-.cs-toolbar h1 { font-size: 16px; font-weight: 700; margin: 0; flex: 1; }
 .cs-btn {
-  padding: 7px 16px;
-  border-radius: 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.3);
   background: transparent;
   color: #fff;
@@ -30,286 +28,271 @@
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
+  text-decoration: none;
 }
 .cs-btn:hover { background: rgba(255,255,255,0.1); }
-.cs-btn.active, .cs-btn.primary { background: #e8192c; border-color: #e8192c; }
-.cs-btn.primary:hover { background: #c01020; }
-.cs-sep { width: 1px; height: 28px; background: rgba(255,255,255,0.2); }
+.cs-btn.active  { background: #e8192c; border-color: #e8192c; }
+.cs-btn.primary { background: #e8192c; border-color: #e8192c; }
+.cs-sep { width: 1px; height: 24px; background: rgba(255,255,255,0.2); flex-shrink:0; }
+.cs-flex { flex: 1; }
+.cs-status { font-size: 11.5px; color: rgba(255,255,255,0.6); }
 
-.date-group { display: flex; gap: 4px; }
-.shift-group { display: flex; gap: 4px; }
-
-.cs-status {
-  font-size: 12px;
-  color: rgba(255,255,255,0.6);
-  padding: 0 8px;
-}
-
-/* -------- A4 page shell -------- */
+/* ============ PAGE SHELL ============ */
 body {
   margin: 0;
-  background: #e0e0e0;
+  background: #ccc;
   font-family: Arial, sans-serif;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-
 .cs-page-wrapper {
-  max-width: 960px;
-  margin: 20px auto;
-  padding: 0 16px 40px;
+  max-width: 1120px;
+  margin: 14px auto 40px;
+  padding: 0 12px;
 }
-
 .cs-page {
   background: #fff;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
-  padding: 16px 20px;
+  padding: 10px 12px;
+  box-shadow: 0 3px 18px rgba(0,0,0,0.18);
 }
 
-/* -------- Page header -------- */
-.page-header-row {
+/* ============ DOCUMENT HEADER ============ */
+.doc-header {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  gap: 0;
+  grid-template-columns: 150px 1fr 160px;
   border: 2px solid #222;
   margin-bottom: 0;
 }
+
+/* Logo cell */
 .logo-cell {
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-right: 2px solid #222;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
-.meta-cells {
+
+/* Meta cells */
+.meta-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-right: 2px solid #222;
+  grid-template-columns: repeat(4, 1fr);
 }
 .meta-cell {
   padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  border-bottom: 1px solid #aaa;
+  border-right: 1px solid #bbb;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
 }
-.meta-cell:nth-child(odd) { border-right: 1px solid #aaa; }
-.meta-cell:last-child, .meta-cell:nth-last-child(2) { border-bottom: none; }
-.meta-cell .mval { font-size: 16px; font-weight: 800; color: #111; }
+.meta-cell:last-child { border-right: none; }
+.meta-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; }
+.meta-val   { font-size: 18px; font-weight: 800; color: #111; line-height: 1.1; }
+.meta-val-sm { font-size: 12px; font-weight: 700; color: #111; }
 
+/* Title cell */
 .title-cell {
-  padding: 6px 14px;
+  padding: 6px 12px;
+  border-left: 2px solid #222;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-end;
   text-align: right;
-  min-width: 140px;
 }
-.title-cell .doc-title { font-size: 14px; font-weight: 800; line-height: 1.3; }
-.title-cell .doc-rev { font-size: 10px; color: #666; }
+.doc-title { font-size: 13px; font-weight: 800; line-height: 1.35; }
+.doc-rev   { font-size: 9px; color: #888; margin-top: 3px; }
 
-/* -------- Column header row -------- */
-.col-header-row {
-  display: grid;
-  grid-template-columns: 28px 40px 64px 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-  border: 1px solid #222;
+/* ============ CONTROL TABLE ============ */
+.cs-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #999;
   border-top: none;
-  background: #f0f0f0;
+  table-layout: fixed;
 }
-.col-header-issued {
-  grid-column: span 5;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 700;
-  border-bottom: 1px solid #aaa;
-  padding: 3px 0;
-}
-.col-header-returned {
-  grid-column: span 5;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 700;
-  border-bottom: 1px solid #aaa;
-  padding: 3px 0;
-  border-left: 1px solid #aaa;
-}
-.ch-row { display: contents; }
-.ch {
+
+/* Column header spanning rows */
+.cs-table thead tr.hdr-top th {
+  background: #e8e8e8;
   font-size: 9.5px;
+  font-weight: 800;
+  text-align: center;
+  padding: 4px 4px;
+  border: 1px solid #999;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.cs-table thead tr.hdr-sub th {
+  background: #f2f2f2;
+  font-size: 8.5px;
   font-weight: 700;
   text-align: center;
   padding: 3px 2px;
-  border-left: 1px solid #bbb;
-  line-height: 1.2;
+  border: 1px solid #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
 }
-.ch:first-child { border-left: none; }
+.th-divider { border-left: 2px solid #777 !important; }
 
-/* -------- Data rows -------- */
-.group-header-row {
-  background: #d0d0d0;
-  font-size: 11px;
+/* Group header rows (tbody) */
+.group-row td {
+  background: #d0d0d0 !important;
+  font-size: 10px;
   font-weight: 800;
-  padding: 3px 8px;
-  border: 1px solid #aaa;
-  border-top: none;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  padding: 3px 7px !important;
+  border: 1px solid #999 !important;
+  white-space: nowrap;
+  overflow: visible !important;
 }
+.group-row.cabin-row td { background: #ffd600 !important; color: #111 !important; }
 .group-badge {
+  display: inline-block;
   background: #555;
   color: #fff;
-  font-size: 9px;
-  padding: 1px 5px;
-  border-radius: 3px;
+  font-size: 8px;
+  padding: 0 4px;
+  border-radius: 2px;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-weight: 700;
 }
+.cabin-row .group-badge { background: #b89800; }
 
-.data-row {
-  display: grid;
-  grid-template-columns: 28px 40px 64px 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-  border: 1px solid #aaa;
-  border-top: none;
-  min-height: 22px;
-}
-.data-row:nth-child(even) { background: #fafafa; }
-.dc {
+/* Data cells */
+.cs-table tbody tr.data-row td {
   font-size: 10px;
   padding: 3px 4px;
-  border-left: 1px solid #ccc;
-  display: flex;
-  align-items: center;
+  border: 1px solid #d0d0d0;
   overflow: hidden;
-  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.dc:first-child { border-left: none; }
-.dc.center { justify-content: center; text-align: center; }
-.dc.num { font-weight: 700; font-size: 11px; justify-content: center; }
-.dc.name { font-size: 9.5px; }
-.dc.divider { border-left: 2px solid #888; }
+.cs-table tbody tr.data-row td.center { text-align: center; }
+.cs-table tbody tr.data-row td.bold   { font-weight: 700; }
+.cs-table tbody tr.data-row td.td-div { border-left: 2px solid #777 !important; }
 
-/* Status colours */
-.row-active { background: #fff8e1 !important; }
-.row-returned { background: #f0fff4 !important; }
-.row-available { background: #fff !important; }
+/* Row status colours */
+.row-active   { background: #fff8e1; }
+.row-returned { background: #edfff2; }
+.row-available { background: #fff; }
 
-/* Cabin-team yellow */
-.cabin-header { background: #ffd600 !important; color: #222 !important; }
-.cabin-header .group-badge { background: #c8a800 !important; color: #fff !important; }
-
-/* -------- Footer -------- */
-.cs-footer {
-  margin-top: 8px;
-  font-size: 10px;
-  color: #666;
-  display: flex;
-  justify-content: space-between;
-}
-
-/* -------- Print overrides -------- */
+/* ============ PRINT ============ */
 @media print {
   .cs-toolbar { display: none !important; }
   body { background: #fff; margin: 0; }
   .cs-page-wrapper { max-width: 100%; margin: 0; padding: 0; }
-  .cs-page { box-shadow: none; padding: 10px; }
-  .cs-page-wrapper { padding: 0; }
-  .cs-footer { display: none; }
+  .cs-page { box-shadow: none; padding: 5px 7px; }
+
+  .cs-table thead tr.hdr-top th,
+  .cs-table thead tr.hdr-sub th { font-size: 7.5px; padding: 2px 2px; }
+  .cs-table tbody tr.data-row td { font-size: 8.5px; padding: 2px 3px; }
+  .group-row td { font-size: 8.5px; padding: 2px 5px !important; }
+  .meta-val { font-size: 14px; }
+  .doc-title { font-size: 11px; }
+}
+@page {
+  size: A4 landscape;
+  margin: 7mm 9mm;
 }
 </style>
 </head>
 <body>
 
-<!-- ---- on-screen toolbar ---- -->
-<div class="cs-toolbar no-print">
-  <h1>Vehicle Control Sheet</h1>
-
-  <div class="date-group">
+<!-- ====== TOOLBAR ====== -->
+<div class="cs-toolbar">
+  <div style="display:flex;gap:4px;">
     <button class="cs-btn" id="btnYesterday" onclick="setDateOffset(-1)">− Yesterday</button>
-    <button class="cs-btn active" id="btnToday" onclick="setDateOffset(0)">Today</button>
-    <button class="cs-btn" id="btnTomorrow" onclick="setDateOffset(1)">+ Tomorrow</button>
+    <button class="cs-btn active" id="btnToday"     onclick="setDateOffset(0)">Today</button>
+    <button class="cs-btn" id="btnTomorrow"  onclick="setDateOffset(1)">+ Tomorrow</button>
   </div>
-
   <div class="cs-sep"></div>
-
-  <div class="shift-group">
-    <button class="cs-btn active" id="btnBoth" onclick="setShift('')">Both shifts</button>
-    <button class="cs-btn" id="btnDay" onclick="setShift('day')">Day (M)</button>
+  <div style="display:flex;gap:4px;">
+    <button class="cs-btn" id="btnDay"   onclick="setShift('day')">Day (M)</button>
     <button class="cs-btn" id="btnNight" onclick="setShift('night')">Night (N)</button>
   </div>
-
   <div class="cs-sep"></div>
   <span class="cs-status" id="csStatus">Loading…</span>
-  <div class="cs-sep"></div>
-
+  <div class="cs-flex"></div>
   <button class="cs-btn primary" onclick="window.print()">🖨 Print / Save PDF</button>
-  <a href="index.html" class="cs-btn" style="text-decoration:none;">← Dashboard</a>
+  <a href="index.html" class="cs-btn">← Dashboard</a>
 </div>
 
-<!-- ---- printable page ---- -->
+<!-- ====== PRINTABLE PAGE ====== -->
 <div class="cs-page-wrapper">
-<div class="cs-page" id="csPage">
+<div class="cs-page">
 
-  <!-- Header -->
-  <div class="page-header-row">
-    <!-- Logo -->
+  <!-- Document header -->
+  <div class="doc-header">
+    <!-- Air Arabia logo -->
     <div class="logo-cell">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 60" width="120" height="45">
-        <rect width="160" height="60" rx="4" fill="#e8192c"/>
-        <text x="80" y="26" fill="white" font-family="Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle" letter-spacing="1">AIR ARABIA</text>
-        <!-- stylised swoosh underline -->
-        <path d="M30 33 Q80 44 130 33" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 64" width="138" height="49">
+        <rect width="180" height="64" rx="4" fill="#e8192c"/>
+        <text x="90" y="41" fill="white" font-family="Arial Black,Arial,sans-serif"
+              font-size="26" font-weight="900" text-anchor="middle" letter-spacing="-0.5">AirArabia</text>
       </svg>
     </div>
 
-    <!-- Team / Shift / Date meta -->
-    <div class="meta-cells">
-      <div class="meta-cell">Team: <span class="mval" id="hdrTeam">—</span></div>
-      <div class="meta-cell">Shift: <span class="mval" id="hdrShift">—</span></div>
-      <div class="meta-cell">Date: <span class="mval" id="hdrDate">—</span></div>
-      <div class="meta-cell">Generated: <span class="mval" id="hdrGenerated" style="font-size:11px;">—</span></div>
-    </div>
-
-    <!-- Sub-headers -->
-    <div style="display:grid; grid-template-columns:1fr 1fr; border-left:2px solid #222; min-width:280px;">
-      <div style="padding:5px 10px; font-size:11px; font-weight:700; border-right:1px solid #aaa; text-align:center;">Issued to</div>
-      <div style="padding:5px 10px; font-size:11px; font-weight:700; text-align:center;">Returned by</div>
-      <div style="display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid #aaa; font-size:9px; font-weight:700; text-align:center; border-right:1px solid #aaa;">
-        <div style="padding:3px 2px; border-right:1px solid #ccc;">Name</div>
-        <div style="padding:3px 2px; border-right:1px solid #ccc;">ID</div>
-        <div style="padding:3px 2px; border-right:1px solid #ccc;">Sign</div>
-        <div style="padding:3px 2px;">Time</div>
+    <!-- Meta: Team / Shift / Date / Generated -->
+    <div class="meta-grid">
+      <div class="meta-cell">
+        <span class="meta-label">Team</span>
+        <span class="meta-val" id="hdrTeam">—</span>
       </div>
-      <div style="display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid #aaa; font-size:9px; font-weight:700; text-align:center;">
-        <div style="padding:3px 2px; border-right:1px solid #ccc;">Name</div>
-        <div style="padding:3px 2px; border-right:1px solid #ccc;">ID</div>
-        <div style="padding:3px 2px; border-right:1px solid #ccc;">Sign</div>
-        <div style="padding:3px 2px;">Time</div>
+      <div class="meta-cell">
+        <span class="meta-label">Shift</span>
+        <span class="meta-val" id="hdrShift">—</span>
+      </div>
+      <div class="meta-cell">
+        <span class="meta-label">Date</span>
+        <span class="meta-val" id="hdrDate">—</span>
+      </div>
+      <div class="meta-cell">
+        <span class="meta-label">Generated</span>
+        <span class="meta-val-sm" id="hdrGenerated">—</span>
       </div>
     </div>
 
     <!-- Title -->
     <div class="title-cell">
-      <div class="doc-title">Vehicle Control<br>Sheet</div>
-      <div class="doc-rev" id="hdrRev">REV —</div>
+      <span class="doc-title">Vehicle Control<br>Sheet</span>
+      <span class="doc-rev" id="hdrRev">REV —</span>
     </div>
   </div>
 
-  <!-- Body: groups rendered by JS -->
-  <div id="csBody"></div>
-
-  <div class="cs-footer">
-    <span>Fleet Control System · Air Arabia Ground Operations</span>
-    <span id="footerDate"></span>
-  </div>
+  <!-- Control table -->
+  <table class="cs-table">
+    <thead>
+      <tr class="hdr-top">
+        <th rowspan="2" style="width:22px;">#</th>
+        <th rowspan="2" style="width:38px;">Car #</th>
+        <th rowspan="2" style="width:64px;">Reg #</th>
+        <th rowspan="2" style="width:80px;">Allocation</th>
+        <th colspan="4">Issued to</th>
+        <th colspan="4" class="th-divider">Returned by</th>
+      </tr>
+      <tr class="hdr-sub">
+        <th style="width:14%;">Name</th>
+        <th style="width:7%;">Staff No.</th>
+        <th style="width:6%;">Signature</th>
+        <th style="width:7%;">Time</th>
+        <th class="th-divider" style="width:14%;">Name</th>
+        <th style="width:7%;">Staff No.</th>
+        <th style="width:6%;">Signature</th>
+        <th style="width:7%;">Time</th>
+      </tr>
+    </thead>
+    <tbody id="csBody"></tbody>
+  </table>
 
 </div><!-- .cs-page -->
 </div><!-- .cs-page-wrapper -->
 
 <script>
-/* -------- state -------- */
+/* ====== CONFIG ====== */
 const ALLOCATIONS = [
   'LSM / LMM',
   'B1 ENGINEER / TECHNICIAN',
@@ -317,47 +300,49 @@ const ALLOCATIONS = [
   'CAT A TECHNICIAN',
   'CABIN TEAM'
 ];
-
-const ALLOCATION_SHORT = {
-  'LSM / LMM': 'LSM',
+const ALLOC_LABEL = {
+  'LSM / LMM':                'LSM / LMM',
   'B1 ENGINEER / TECHNICIAN': 'Engineer B1 / B1 Tech',
-  'B2 ENGINEER': 'Engineer B2',
-  'CAT A TECHNICIAN': 'CAT A',
-  'CABIN TEAM': 'Cabin Team'
+  'B2 ENGINEER':              'Engineer B2',
+  'CAT A TECHNICIAN':         'CAT A Technician',
+  'CABIN TEAM':               'Cabin Team'
 };
 
-let dateOffset = 0;   // -1, 0, 1
-let shiftFilter = ''; // '' | 'day' | 'night'
-let currentData = null;
+/* ====== STATE ====== */
+let dateOffset  = 0;        // -1 | 0 | 1
+let shiftFilter = '';       // 'day' | 'night'
 
-/* -------- date helpers -------- */
-function uaeDateStr(offsetDays = 0) {
-  const now = new Date();
-  const uae = new Date(now.getTime() + 4 * 60 * 60 * 1000 + offsetDays * 86400000);
-  const y = uae.getUTCFullYear();
-  const m = String(uae.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(uae.getUTCDate()).padStart(2, '0');
+/* ====== HELPERS ====== */
+function uaeDateStr(off = 0) {
+  const t = new Date(Date.now() + (4 * 3600 + off * 86400) * 1000);
+  const y = t.getUTCFullYear();
+  const m = String(t.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(t.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
-function fmtDateDisplay(isoDate) {
-  // e.g. 2026-08-22 → 22.08.26
-  const [y, m, d] = isoDate.split('-');
+function uaeHour() {
+  return new Date(Date.now() + 4 * 3600 * 1000).getUTCHours();
+}
+
+function fmtDisplay(iso) {           // "2026-08-22" → "22.08.26"
+  const [y, m, d] = iso.split('-');
   return `${d}.${m}.${y.slice(2)}`;
 }
 
-function fmtTime(isoStr) {
-  if (!isoStr) return '';
-  const d = new Date(isoStr);
-  return d.toLocaleString('en-GB', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit' });
+function fmtTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('en-GB', {
+    timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit'
+  });
 }
 
-function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g,
+    c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
 
-/* -------- controls -------- */
+/* ====== CONTROLS ====== */
 function setDateOffset(off) {
   dateOffset = off;
   ['btnYesterday','btnToday','btnTomorrow'].forEach((id, i) => {
@@ -368,134 +353,120 @@ function setDateOffset(off) {
 
 function setShift(s) {
   shiftFilter = s;
-  ['btnBoth','btnDay','btnNight'].forEach((id, sv) => {
-    const vals = ['','day','night'];
-    document.getElementById(id).classList.toggle('active', vals[sv] === s);
-  });
+  document.getElementById('btnDay').classList.toggle('active',   s === 'day');
+  document.getElementById('btnNight').classList.toggle('active', s === 'night');
   loadSheet();
 }
 
-/* -------- fetch & render -------- */
+/* ====== FETCH ====== */
 async function loadSheet() {
   const date = uaeDateStr(dateOffset);
   document.getElementById('csStatus').textContent = 'Loading…';
 
-  let url = `/api/loans/control-sheet?date=${date}`;
-  if (shiftFilter) url += `&shift=${shiftFilter}`;
+  const url = `/api/loans/control-sheet?date=${date}` + (shiftFilter ? `&shift=${shiftFilter}` : '');
 
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error('API error');
-    currentData = await res.json();
-    renderSheet(currentData);
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    renderSheet(data);
+    const sl = shiftFilter === 'day' ? 'M' : shiftFilter === 'night' ? 'N' : (data.isDay ? 'M' : 'N');
     document.getElementById('csStatus').textContent =
-      `${currentData.cars.length} cars · Team ${currentData.duty_team || '?'} · ${currentData.isDay ? 'Day' : 'Night'} shift`;
+      `${data.cars.length} cars · Team ${data.duty_team || '?'} · ${sl} shift`;
   } catch (e) {
-    document.getElementById('csStatus').textContent = 'Load failed';
+    document.getElementById('csStatus').textContent = 'Load failed — ' + e.message;
   }
 }
 
+/* ====== RENDER ====== */
 function renderSheet(data) {
-  // Header meta
-  document.getElementById('hdrTeam').textContent = data.duty_team || '—';
-  document.getElementById('hdrShift').textContent = data.isDay ? 'M' : 'N';
-  document.getElementById('hdrDate').textContent = fmtDateDisplay(data.date);
-  const now = new Date();
-  const nowFmt = now.toLocaleString('en-GB', { timeZone:'Asia/Dubai', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-  document.getElementById('hdrGenerated').textContent = nowFmt;
-  document.getElementById('hdrRev').textContent = 'REV ' + fmtDateDisplay(data.date);
-  document.getElementById('footerDate').textContent = 'Printed: ' + nowFmt;
+  const sl = shiftFilter === 'day' ? 'M' : shiftFilter === 'night' ? 'N' : (data.isDay ? 'M' : 'N');
 
-  // Group cars by allocation
+  document.getElementById('hdrTeam').textContent      = data.duty_team || '—';
+  document.getElementById('hdrShift').textContent     = sl;
+  document.getElementById('hdrDate').textContent      = fmtDisplay(data.date);
+  document.getElementById('hdrRev').textContent       = 'REV ' + fmtDisplay(data.date);
+
+  const nowStr = new Date().toLocaleString('en-GB', {
+    timeZone: 'Asia/Dubai', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit'
+  });
+  document.getElementById('hdrGenerated').textContent = nowStr;
+
+  /* Group cars */
   const groups = {};
   ALLOCATIONS.forEach(a => { groups[a] = []; });
-  groups['TEMP / UNASSIGNED'] = [];
+  groups['OTHER'] = [];
 
   data.cars.forEach(car => {
-    const key = ALLOCATIONS.includes(car.allocation) ? car.allocation : 'TEMP / UNASSIGNED';
+    const key = ALLOCATIONS.includes(car.allocation) ? car.allocation : 'OTHER';
     groups[key].push(car);
   });
 
-  const naturalSort = (a, b) => a.car_number.localeCompare(b.car_number, undefined, { numeric: true, sensitivity: 'base' });
-  Object.values(groups).forEach(g => g.sort(naturalSort));
+  const natSort = (a, b) =>
+    a.car_number.localeCompare(b.car_number, undefined, { numeric: true, sensitivity: 'base' });
+  Object.values(groups).forEach(g => g.sort(natSort));
 
   const body = document.getElementById('csBody');
   body.innerHTML = '';
 
-  const allKeys = [...ALLOCATIONS, 'TEMP / UNASSIGNED'];
-  allKeys.forEach(key => {
-    const carsInGroup = groups[key];
-    if (carsInGroup.length === 0) return;
+  [...ALLOCATIONS, 'OTHER'].forEach(key => {
+    const cars = groups[key];
+    if (!cars.length) return;
 
-    // Group header
     const isCabin = key === 'CABIN TEAM';
-    const gh = document.createElement('div');
-    gh.className = 'group-header-row' + (isCabin ? ' cabin-header' : '');
-    const shortName = ALLOCATION_SHORT[key] || key;
-    gh.innerHTML = `${esc(shortName)} <span class="group-badge">${carsInGroup.length} car${carsInGroup.length !== 1 ? 's' : ''}</span>`;
-    body.appendChild(gh);
+    const label   = ALLOC_LABEL[key] || key;
 
-    // Column headers (only for first group; repeated per group for clarity)
-    const hdr = document.createElement('div');
-    hdr.style.cssText = 'display:grid; grid-template-columns: 28px 40px 64px 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr; border:1px solid #aaa; border-top:none; background:#f5f5f5;';
-    hdr.innerHTML = `
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:none;">#</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Car #</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Reg #</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc; border-bottom:none; grid-column:span 1;">Name</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">ID</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Sign</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Time</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:2px solid #888;">AOA</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Name</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">ID</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Sign</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Time</div>
-      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">AOA</div>
-    `;
-    body.appendChild(hdr);
+    /* Group header row */
+    const gtr = document.createElement('tr');
+    gtr.className = 'group-row' + (isCabin ? ' cabin-row' : '');
+    gtr.innerHTML = `<td colspan="12">${esc(label)}<span class="group-badge">${cars.length} car${cars.length !== 1 ? 's' : ''}</span></td>`;
+    body.appendChild(gtr);
 
-    carsInGroup.forEach((car, idx) => {
+    /* Data rows */
+    cars.forEach((car, idx) => {
       const loan = car.loan;
-      const rowClass = loan ? (loan.status === 'active' ? 'data-row row-active' : 'data-row row-returned') : 'data-row row-available';
-      const issuedName = loan ? esc(loan.staff_name) : '';
-      const issuedId = loan ? esc(loan.staff_number) : '';
+      const rc   = loan ? (loan.status === 'active' ? 'row-active' : 'row-returned') : 'row-available';
+
+      const issuedName = loan ? esc(loan.staff_name   || '') : '';
+      const issuedId   = loan ? esc(loan.staff_number || '') : '';
       const issuedTime = loan ? fmtTime(loan.issued_at) : '';
-      const retName = loan && loan.returned_by_name ? esc(loan.returned_by_name) : '';
-      const retId = loan && loan.returned_by_staff_number ? esc(loan.returned_by_staff_number) : '';
-      const retTime = loan && loan.returned_at ? fmtTime(loan.returned_at) : '';
+      const retName    = loan && loan.returned_by_name          ? esc(loan.returned_by_name)          : '';
+      const retId      = loan && loan.returned_by_staff_number  ? esc(loan.returned_by_staff_number)  : '';
+      const retTime    = loan && loan.returned_at               ? fmtTime(loan.returned_at)           : '';
 
-      const row = document.createElement('div');
-      row.className = rowClass;
-      row.innerHTML = `
-        <div class="dc num">${idx + 1}</div>
-        <div class="dc center" style="font-size:11px; font-weight:700;">${esc(car.car_number)}</div>
-        <div class="dc center" style="font-size:10px;">${esc(car.reg_number)}</div>
-        <div class="dc name">${issuedName}</div>
-        <div class="dc center">${issuedId}</div>
-        <div class="dc center"></div>
-        <div class="dc center">${issuedTime}</div>
-        <div class="dc center divider" style="font-size:8px; color:#888;">${loan ? '' : ''}</div>
-        <div class="dc name">${retName}</div>
-        <div class="dc center">${retId}</div>
-        <div class="dc center"></div>
-        <div class="dc center">${retTime}</div>
-        <div class="dc center" style="font-size:8px; color:#888;"></div>
+      const allocDisplay = esc(car.allocation || '—');
+
+      const tr = document.createElement('tr');
+      tr.className = `data-row ${rc}`;
+      tr.innerHTML = `
+        <td class="center bold">${idx + 1}</td>
+        <td class="center bold">${esc(car.car_number)}</td>
+        <td class="center">${esc(car.reg_number)}</td>
+        <td class="center" style="font-size:8.5px; color:#555;">${allocDisplay}</td>
+        <td>${issuedName}</td>
+        <td class="center">${issuedId}</td>
+        <td></td>
+        <td class="center">${issuedTime}</td>
+        <td class="td-div">${retName}</td>
+        <td class="center">${retId}</td>
+        <td></td>
+        <td class="center">${retTime}</td>
       `;
-      body.appendChild(row);
+      body.appendChild(tr);
     });
-
-    // Spacer between groups
-    const spacer = document.createElement('div');
-    spacer.style.cssText = 'height:6px; border:1px solid #aaa; border-top:none; background:#e8e8e8;';
-    body.appendChild(spacer);
   });
 }
 
-/* -------- init -------- */
-loadSheet();
-// Refresh every 30 s so active loans appear as they're created
-setInterval(loadSheet, 30000);
+/* ====== INIT ====== */
+(function init() {
+  const h = uaeHour();
+  shiftFilter = (h >= 6 && h < 18) ? 'day' : 'night';
+  document.getElementById('btnDay').classList.toggle('active',   shiftFilter === 'day');
+  document.getElementById('btnNight').classList.toggle('active', shiftFilter === 'night');
+  loadSheet();
+  setInterval(loadSheet, 30000);
+})();
 </script>
 </body>
 </html>
