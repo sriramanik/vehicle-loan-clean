@@ -14,9 +14,9 @@
   --available-text: oklch(0.42 0.12 145);
   --available-dot: oklch(0.68 0.17 145);
 
-  --loaned-bg: oklch(0.94 0.06 25);
-  --loaned-text: oklch(0.5 0.17 25);
-  --loaned-dot: oklch(0.62 0.21 25);
+  --loaned-bg: oklch(0.93 0.08 20);
+  --loaned-text: oklch(0.42 0.22 20);
+  --loaned-dot: oklch(0.52 0.25 20);
 
   --maintenance-bg: oklch(0.92 0.006 260);
   --maintenance-text: oklch(0.45 0.01 260);
