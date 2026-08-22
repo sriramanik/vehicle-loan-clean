@@ -188,7 +188,7 @@ function buildCarTile(car) {
 
 // ---------------- Car action sheet ----------------
 
-const STATUS_LABELS = { available: 'Free', loaned: 'Out', maintenance: 'Off duty' };
+const STATUS_LABELS = { available: 'Available', loaned: 'Loaned', maintenance: 'Unavailable' };
 
 function openCarSheet(carId) {
   activeCarId = carId;
