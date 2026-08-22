@@ -608,7 +608,7 @@ async function loadRecords() {
       <td>${fmtTime(l.returned_at)}</td>
       <td>${l.returned_by_staff_number ? escapeHtml(l.returned_by_staff_number) + ' · ' + escapeHtml(l.returned_by_name) : '—'}</td>
       <td><span class="status-badge ${l.status === 'active' ? 'loaned' : 'available'}">${l.status === 'active' ? 'Loaned Out' : 'Returned'}</span></td>
-      <td>${l.inspection_data ? `<button class="btn btn-outline btn-sm" onclick="viewInspection(${l.id})">View</button>` : '—'}</td>
+      <td>${l.inspection_data ? `<button class="btn btn-outline btn-sm" onclick="viewInspection(${l.id})">View</button> <button class="btn btn-outline btn-sm" onclick="printInspection(${l.id})" title="Print / save as PDF">🖨</button>` : '—'}</td>
     </tr>
   `).join('') || `<tr><td colspan="11" style="text-align:center; color:var(--text-dim);">No records found</td></tr>`;
 }
@@ -621,42 +621,38 @@ function viewInspection(loanId) {
 
   document.getElementById('inspectionSub').textContent = `Car #${loan.car_number} · ${loan.reg_number} — ${loan.staff_number} · ${loan.staff_name} — ${fmtTime(loan.issued_at)}`;
 
+  const renderGroup = (title, items, values) => `
+    <div class="checklist-section">
+      <div class="checklist-title">${title}</div>
+      ${items.map(item => {
+        const v = (values && values[item]) || 'n/a';
+        return `<div class="checklist-item"><span>${item}</span><span class="status-badge ${v === 'no' ? 'loaned' : 'available'}">${v.toUpperCase()}</span></div>`;
+      }).join('')}
+    </div>
+  `;
+
   let html;
-  if (data.mode === 'quick' || data.mode === 'detailed') {
-    // New schema (Fleet Control)
-    if (data.mode === 'quick') {
-      html = `
-        <div class="checklist-section">
-          <div class="checklist-title">Quick check</div>
-          <div class="checklist-item"><span>Vehicle checked, all good</span><span class="status-badge ${data.all_ok ? 'available' : 'loaned'}">${data.all_ok ? 'YES' : 'NO'}</span></div>
-        </div>
-        ${data.notes ? `<div class="checklist-section"><div class="checklist-title">What was wrong</div><div style="font-size:13.5px; color:var(--text-dim);">${escapeHtml(data.notes)}</div></div>` : ''}
-      `;
-    } else {
-      html = `
-        <div class="checklist-section">
-          <div class="checklist-title">Detailed check</div>
-          <div class="checklist-item"><span>Exterior OK</span><span class="status-badge ${data.exterior_ok ? 'available' : 'loaned'}">${data.exterior_ok ? 'YES' : 'NO'}</span></div>
-          <div class="checklist-item"><span>Interior OK</span><span class="status-badge ${data.interior_ok ? 'available' : 'loaned'}">${data.interior_ok ? 'YES' : 'NO'}</span></div>
-        </div>
-        <div class="checklist-section">
-          <div class="checklist-title">Fuel level at pickup</div>
-          <div style="font-size:14px;">${data.fuel_level || 'n/a'}</div>
-        </div>
-        ${data.notes ? `<div class="checklist-section"><div class="checklist-title">Damage / notes</div><div style="font-size:13.5px; color:var(--text-dim);">${escapeHtml(data.notes)}</div></div>` : ''}
-      `;
-    }
-  } else {
-    // Legacy per-item checklist schema
-    const renderGroup = (title, items, values) => `
+  if (data.mode === 'quick') {
+    html = `
       <div class="checklist-section">
-        <div class="checklist-title">${title}</div>
-        ${items.map(item => {
-          const v = (values && values[item]) || 'n/a';
-          return `<div class="checklist-item"><span>${item}</span><span class="status-badge ${v === 'no' ? 'loaned' : 'available'}">${v.toUpperCase()}</span></div>`;
-        }).join('')}
+        <div class="checklist-title">Quick check</div>
+        <div class="checklist-item"><span>Vehicle checked, all good</span><span class="status-badge ${data.all_ok ? 'available' : 'loaned'}">${data.all_ok ? 'YES' : 'NO'}</span></div>
       </div>
+      ${data.notes ? `<div class="checklist-section"><div class="checklist-title">What was wrong</div><div style="font-size:13.5px; color:var(--text-dim);">${escapeHtml(data.notes)}</div></div>` : ''}
     `;
+  } else if (data.mode === 'detailed') {
+    // Per-item schema (new) — exterior/interior are objects keyed by item name
+    html = `
+      ${renderGroup('Exterior', EXTERIOR_ITEMS, data.exterior)}
+      ${renderGroup('Interior', INTERIOR_ITEMS, data.interior)}
+      <div class="checklist-section">
+        <div class="checklist-title">Fuel level at pickup</div>
+        <div style="font-size:14px;">${data.fuel_level || 'n/a'}</div>
+      </div>
+      ${(data.notes || data.remarks) ? `<div class="checklist-section"><div class="checklist-title">Damage / notes</div><div style="font-size:13.5px; color:var(--text-dim);">${escapeHtml(data.notes || data.remarks)}</div></div>` : ''}
+    `;
+  } else {
+    // Legacy per-item schema (exterior/interior objects without explicit mode)
     html = `
       ${renderGroup('Exterior', EXTERIOR_ITEMS, data.exterior)}
       ${renderGroup('Interior', INTERIOR_ITEMS, data.interior)}
@@ -670,6 +666,87 @@ function viewInspection(loanId) {
 
   document.getElementById('inspectionContent').innerHTML = html;
   document.getElementById('inspectionModalOverlay').classList.add('open');
+}
+
+// Opens a print-ready window with a full vehicle inspection report for the given loan
+function printInspection(loanId) {
+  const loan = allRecordsCache.find(l => l.id === loanId);
+  if (!loan || !loan.inspection_data) return showToast('No inspection data for this loan', 'error');
+  let data;
+  try { data = JSON.parse(loan.inspection_data); } catch (e) { return showToast('Could not read inspection data', 'error'); }
+
+  const renderItemRows = (items, values) =>
+    items.map(item => {
+      const v = (values && values[item]) || 'n/a';
+      const color = v === 'no' ? '#e53e3e' : (v === 'yes' ? '#38a169' : '#888');
+      return `<tr>
+        <td style="padding:4px 8px; border:1px solid #ddd;">${item}</td>
+        <td style="padding:4px 8px; border:1px solid #ddd; text-align:center; color:${color}; font-weight:700;">${v.toUpperCase()}</td>
+      </tr>`;
+    }).join('');
+
+  let bodyHtml;
+  if (data.mode === 'quick') {
+    bodyHtml = `
+      <h3 style="margin-top:16px;">Quick Inspection</h3>
+      <table style="border-collapse:collapse; width:100%; font-size:13px;">
+        <tr><td style="padding:4px 8px; border:1px solid #ddd;">Vehicle checked, all good</td>
+        <td style="padding:4px 8px; border:1px solid #ddd; text-align:center; font-weight:700; color:${data.all_ok ? '#38a169' : '#e53e3e'};">${data.all_ok ? 'YES' : 'NO'}</td></tr>
+      </table>
+      ${data.notes ? `<p style="margin-top:8px;"><strong>Issues noted:</strong> ${data.notes}</p>` : ''}
+    `;
+  } else {
+    bodyHtml = `
+      <h3 style="margin-top:16px;">Exterior Check</h3>
+      <table style="border-collapse:collapse; width:100%; font-size:13px;">${renderItemRows(EXTERIOR_ITEMS, data.exterior)}</table>
+      <h3 style="margin-top:12px;">Interior Check</h3>
+      <table style="border-collapse:collapse; width:100%; font-size:13px;">${renderItemRows(INTERIOR_ITEMS, data.interior)}</table>
+      <h3 style="margin-top:12px;">Fuel Level at Pickup</h3>
+      <p style="font-size:14px;">${data.fuel_level || data.fuel_quantity || 'n/a'}</p>
+      ${(data.notes || data.remarks) ? `<p><strong>Damage / notes:</strong> ${data.notes || data.remarks}</p>` : ''}
+    `;
+  }
+
+  const issued = new Date(loan.issued_at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const win = window.open('', '_blank', 'width=700,height=900');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>Inspection — Car ${loan.car_number}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; color: #222; }
+      h1 { font-size:18px; margin-bottom:4px; }
+      .meta { font-size:12px; color:#555; margin-bottom:16px; }
+      table { border-collapse:collapse; width:100%; font-size:13px; }
+      td { padding:4px 8px; border:1px solid #ddd; }
+      h3 { font-size:14px; margin-bottom:4px; border-bottom:1px solid #ccc; padding-bottom:3px; }
+      @media print { button { display:none; } }
+    </style>
+  </head><body>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 52" width="120" height="44">
+        <rect width="140" height="52" rx="4" fill="#e8192c"/>
+        <text x="70" y="33" fill="white" font-family="Arial,sans-serif" font-size="18" font-weight="bold" text-anchor="middle">Air Arabia</text>
+      </svg>
+      <h1>Vehicle Inspection Record</h1>
+    </div>
+    <div class="meta">
+      Car #${loan.car_number} &nbsp;|&nbsp; Reg: ${loan.reg_number} &nbsp;|&nbsp;
+      Staff: ${loan.staff_name} (${loan.staff_number}) &nbsp;|&nbsp;
+      Issued: ${issued} &nbsp;|&nbsp;
+      Mode: ${data.mode === 'quick' ? 'Quick' : 'Detailed'}
+    </div>
+    ${bodyHtml}
+    <div style="margin-top:24px;border-top:1px solid #ccc;padding-top:12px;display:flex;gap:40px;">
+      <div>Checked by: <strong>${loan.staff_name}</strong></div>
+      <div style="flex:1; border-bottom:1px solid #aaa; margin-top:16px;">Signature</div>
+      <div>Date / Time: ${issued}</div>
+    </div>
+    <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+      <button onclick="window.print()" style="padding:8px 18px;background:#e8192c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;">Print / Save as PDF</button>
+    </div>
+  </body></html>`);
+  win.document.close();
 }
 
 function exportCsv() {

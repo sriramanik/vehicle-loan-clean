@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vehicle Control Sheet · Air Arabia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* -------- screen controls (hidden when printing) -------- */
+.cs-toolbar {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: 'Manrope', Arial, sans-serif;
+}
+.cs-toolbar h1 { font-size: 16px; font-weight: 700; margin: 0; flex: 1; }
+.cs-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.cs-btn:hover { background: rgba(255,255,255,0.1); }
+.cs-btn.active, .cs-btn.primary { background: #e8192c; border-color: #e8192c; }
+.cs-btn.primary:hover { background: #c01020; }
+.cs-sep { width: 1px; height: 28px; background: rgba(255,255,255,0.2); }
+
+.date-group { display: flex; gap: 4px; }
+.shift-group { display: flex; gap: 4px; }
+
+.cs-status {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  padding: 0 8px;
+}
+
+/* -------- A4 page shell -------- */
+body {
+  margin: 0;
+  background: #e0e0e0;
+  font-family: Arial, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cs-page-wrapper {
+  max-width: 960px;
+  margin: 20px auto;
+  padding: 0 16px 40px;
+}
+
+.cs-page {
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  padding: 16px 20px;
+}
+
+/* -------- Page header -------- */
+.page-header-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0;
+  border: 2px solid #222;
+  margin-bottom: 0;
+}
+.logo-cell {
+  padding: 8px 12px;
+  border-right: 2px solid #222;
+  display: flex;
+  align-items: center;
+}
+.meta-cells {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-right: 2px solid #222;
+}
+.meta-cell {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-bottom: 1px solid #aaa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.meta-cell:nth-child(odd) { border-right: 1px solid #aaa; }
+.meta-cell:last-child, .meta-cell:nth-last-child(2) { border-bottom: none; }
+.meta-cell .mval { font-size: 16px; font-weight: 800; color: #111; }
+
+.title-cell {
+  padding: 6px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  text-align: right;
+  min-width: 140px;
+}
+.title-cell .doc-title { font-size: 14px; font-weight: 800; line-height: 1.3; }
+.title-cell .doc-rev { font-size: 10px; color: #666; }
+
+/* -------- Column header row -------- */
+.col-header-row {
+  display: grid;
+  grid-template-columns: 28px 40px 64px 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  border: 1px solid #222;
+  border-top: none;
+  background: #f0f0f0;
+}
+.col-header-issued {
+  grid-column: span 5;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  border-bottom: 1px solid #aaa;
+  padding: 3px 0;
+}
+.col-header-returned {
+  grid-column: span 5;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  border-bottom: 1px solid #aaa;
+  padding: 3px 0;
+  border-left: 1px solid #aaa;
+}
+.ch-row { display: contents; }
+.ch {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+  padding: 3px 2px;
+  border-left: 1px solid #bbb;
+  line-height: 1.2;
+}
+.ch:first-child { border-left: none; }
+
+/* -------- Data rows -------- */
+.group-header-row {
+  background: #d0d0d0;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border: 1px solid #aaa;
+  border-top: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.group-badge {
+  background: #555;
+  color: #fff;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.data-row {
+  display: grid;
+  grid-template-columns: 28px 40px 64px 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  border: 1px solid #aaa;
+  border-top: none;
+  min-height: 22px;
+}
+.data-row:nth-child(even) { background: #fafafa; }
+.dc {
+  font-size: 10px;
+  padding: 3px 4px;
+  border-left: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  line-height: 1.2;
+}
+.dc:first-child { border-left: none; }
+.dc.center { justify-content: center; text-align: center; }
+.dc.num { font-weight: 700; font-size: 11px; justify-content: center; }
+.dc.name { font-size: 9.5px; }
+.dc.divider { border-left: 2px solid #888; }
+
+/* Status colours */
+.row-active { background: #fff8e1 !important; }
+.row-returned { background: #f0fff4 !important; }
+.row-available { background: #fff !important; }
+
+/* Cabin-team yellow */
+.cabin-header { background: #ffd600 !important; color: #222 !important; }
+.cabin-header .group-badge { background: #c8a800 !important; color: #fff !important; }
+
+/* -------- Footer -------- */
+.cs-footer {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #666;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* -------- Print overrides -------- */
+@media print {
+  .cs-toolbar { display: none !important; }
+  body { background: #fff; margin: 0; }
+  .cs-page-wrapper { max-width: 100%; margin: 0; padding: 0; }
+  .cs-page { box-shadow: none; padding: 10px; }
+  .cs-page-wrapper { padding: 0; }
+  .cs-footer { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ---- on-screen toolbar ---- -->
+<div class="cs-toolbar no-print">
+  <h1>Vehicle Control Sheet</h1>
+
+  <div class="date-group">
+    <button class="cs-btn" id="btnYesterday" onclick="setDateOffset(-1)">− Yesterday</button>
+    <button class="cs-btn active" id="btnToday" onclick="setDateOffset(0)">Today</button>
+    <button class="cs-btn" id="btnTomorrow" onclick="setDateOffset(1)">+ Tomorrow</button>
+  </div>
+
+  <div class="cs-sep"></div>
+
+  <div class="shift-group">
+    <button class="cs-btn active" id="btnBoth" onclick="setShift('')">Both shifts</button>
+    <button class="cs-btn" id="btnDay" onclick="setShift('day')">Day (M)</button>
+    <button class="cs-btn" id="btnNight" onclick="setShift('night')">Night (N)</button>
+  </div>
+
+  <div class="cs-sep"></div>
+  <span class="cs-status" id="csStatus">Loading…</span>
+  <div class="cs-sep"></div>
+
+  <button class="cs-btn primary" onclick="window.print()">🖨 Print / Save PDF</button>
+  <a href="index.html" class="cs-btn" style="text-decoration:none;">← Dashboard</a>
+</div>
+
+<!-- ---- printable page ---- -->
+<div class="cs-page-wrapper">
+<div class="cs-page" id="csPage">
+
+  <!-- Header -->
+  <div class="page-header-row">
+    <!-- Logo -->
+    <div class="logo-cell">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 60" width="120" height="45">
+        <rect width="160" height="60" rx="4" fill="#e8192c"/>
+        <text x="80" y="26" fill="white" font-family="Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle" letter-spacing="1">AIR ARABIA</text>
+        <!-- stylised swoosh underline -->
+        <path d="M30 33 Q80 44 130 33" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- Team / Shift / Date meta -->
+    <div class="meta-cells">
+      <div class="meta-cell">Team: <span class="mval" id="hdrTeam">—</span></div>
+      <div class="meta-cell">Shift: <span class="mval" id="hdrShift">—</span></div>
+      <div class="meta-cell">Date: <span class="mval" id="hdrDate">—</span></div>
+      <div class="meta-cell">Generated: <span class="mval" id="hdrGenerated" style="font-size:11px;">—</span></div>
+    </div>
+
+    <!-- Sub-headers -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; border-left:2px solid #222; min-width:280px;">
+      <div style="padding:5px 10px; font-size:11px; font-weight:700; border-right:1px solid #aaa; text-align:center;">Issued to</div>
+      <div style="padding:5px 10px; font-size:11px; font-weight:700; text-align:center;">Returned by</div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid #aaa; font-size:9px; font-weight:700; text-align:center; border-right:1px solid #aaa;">
+        <div style="padding:3px 2px; border-right:1px solid #ccc;">Name</div>
+        <div style="padding:3px 2px; border-right:1px solid #ccc;">ID</div>
+        <div style="padding:3px 2px; border-right:1px solid #ccc;">Sign</div>
+        <div style="padding:3px 2px;">Time</div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid #aaa; font-size:9px; font-weight:700; text-align:center;">
+        <div style="padding:3px 2px; border-right:1px solid #ccc;">Name</div>
+        <div style="padding:3px 2px; border-right:1px solid #ccc;">ID</div>
+        <div style="padding:3px 2px; border-right:1px solid #ccc;">Sign</div>
+        <div style="padding:3px 2px;">Time</div>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="title-cell">
+      <div class="doc-title">Vehicle Control<br>Sheet</div>
+      <div class="doc-rev" id="hdrRev">REV —</div>
+    </div>
+  </div>
+
+  <!-- Body: groups rendered by JS -->
+  <div id="csBody"></div>
+
+  <div class="cs-footer">
+    <span>Fleet Control System · Air Arabia Ground Operations</span>
+    <span id="footerDate"></span>
+  </div>
+
+</div><!-- .cs-page -->
+</div><!-- .cs-page-wrapper -->
+
+<script>
+/* -------- state -------- */
+const ALLOCATIONS = [
+  'LSM / LMM',
+  'B1 ENGINEER / TECHNICIAN',
+  'B2 ENGINEER',
+  'CAT A TECHNICIAN',
+  'CABIN TEAM'
+];
+
+const ALLOCATION_SHORT = {
+  'LSM / LMM': 'LSM',
+  'B1 ENGINEER / TECHNICIAN': 'Engineer B1 / B1 Tech',
+  'B2 ENGINEER': 'Engineer B2',
+  'CAT A TECHNICIAN': 'CAT A',
+  'CABIN TEAM': 'Cabin Team'
+};
+
+let dateOffset = 0;   // -1, 0, 1
+let shiftFilter = ''; // '' | 'day' | 'night'
+let currentData = null;
+
+/* -------- date helpers -------- */
+function uaeDateStr(offsetDays = 0) {
+  const now = new Date();
+  const uae = new Date(now.getTime() + 4 * 60 * 60 * 1000 + offsetDays * 86400000);
+  const y = uae.getUTCFullYear();
+  const m = String(uae.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(uae.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function fmtDateDisplay(isoDate) {
+  // e.g. 2026-08-22 → 22.08.26
+  const [y, m, d] = isoDate.split('-');
+  return `${d}.${m}.${y.slice(2)}`;
+}
+
+function fmtTime(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return d.toLocaleString('en-GB', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit' });
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* -------- controls -------- */
+function setDateOffset(off) {
+  dateOffset = off;
+  ['btnYesterday','btnToday','btnTomorrow'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('active', i === off + 1);
+  });
+  loadSheet();
+}
+
+function setShift(s) {
+  shiftFilter = s;
+  ['btnBoth','btnDay','btnNight'].forEach((id, sv) => {
+    const vals = ['','day','night'];
+    document.getElementById(id).classList.toggle('active', vals[sv] === s);
+  });
+  loadSheet();
+}
+
+/* -------- fetch & render -------- */
+async function loadSheet() {
+  const date = uaeDateStr(dateOffset);
+  document.getElementById('csStatus').textContent = 'Loading…';
+
+  let url = `/api/loans/control-sheet?date=${date}`;
+  if (shiftFilter) url += `&shift=${shiftFilter}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API error');
+    currentData = await res.json();
+    renderSheet(currentData);
+    document.getElementById('csStatus').textContent =
+      `${currentData.cars.length} cars · Team ${currentData.duty_team || '?'} · ${currentData.isDay ? 'Day' : 'Night'} shift`;
+  } catch (e) {
+    document.getElementById('csStatus').textContent = 'Load failed';
+  }
+}
+
+function renderSheet(data) {
+  // Header meta
+  document.getElementById('hdrTeam').textContent = data.duty_team || '—';
+  document.getElementById('hdrShift').textContent = data.isDay ? 'M' : 'N';
+  document.getElementById('hdrDate').textContent = fmtDateDisplay(data.date);
+  const now = new Date();
+  const nowFmt = now.toLocaleString('en-GB', { timeZone:'Asia/Dubai', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+  document.getElementById('hdrGenerated').textContent = nowFmt;
+  document.getElementById('hdrRev').textContent = 'REV ' + fmtDateDisplay(data.date);
+  document.getElementById('footerDate').textContent = 'Printed: ' + nowFmt;
+
+  // Group cars by allocation
+  const groups = {};
+  ALLOCATIONS.forEach(a => { groups[a] = []; });
+  groups['TEMP / UNASSIGNED'] = [];
+
+  data.cars.forEach(car => {
+    const key = ALLOCATIONS.includes(car.allocation) ? car.allocation : 'TEMP / UNASSIGNED';
+    groups[key].push(car);
+  });
+
+  const naturalSort = (a, b) => a.car_number.localeCompare(b.car_number, undefined, { numeric: true, sensitivity: 'base' });
+  Object.values(groups).forEach(g => g.sort(naturalSort));
+
+  const body = document.getElementById('csBody');
+  body.innerHTML = '';
+
+  const allKeys = [...ALLOCATIONS, 'TEMP / UNASSIGNED'];
+  allKeys.forEach(key => {
+    const carsInGroup = groups[key];
+    if (carsInGroup.length === 0) return;
+
+    // Group header
+    const isCabin = key === 'CABIN TEAM';
+    const gh = document.createElement('div');
+    gh.className = 'group-header-row' + (isCabin ? ' cabin-header' : '');
+    const shortName = ALLOCATION_SHORT[key] || key;
+    gh.innerHTML = `${esc(shortName)} <span class="group-badge">${carsInGroup.length} car${carsInGroup.length !== 1 ? 's' : ''}</span>`;
+    body.appendChild(gh);
+
+    // Column headers (only for first group; repeated per group for clarity)
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:grid; grid-template-columns: 28px 40px 64px 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr; border:1px solid #aaa; border-top:none; background:#f5f5f5;';
+    hdr.innerHTML = `
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:none;">#</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Car #</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Reg #</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc; border-bottom:none; grid-column:span 1;">Name</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">ID</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Sign</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Time</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:2px solid #888;">AOA</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Name</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">ID</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Sign</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">Time</div>
+      <div style="font-size:8.5px; font-weight:700; text-align:center; padding:3px 2px; border-left:1px solid #ccc;">AOA</div>
+    `;
+    body.appendChild(hdr);
+
+    carsInGroup.forEach((car, idx) => {
+      const loan = car.loan;
+      const rowClass = loan ? (loan.status === 'active' ? 'data-row row-active' : 'data-row row-returned') : 'data-row row-available';
+      const issuedName = loan ? esc(loan.staff_name) : '';
+      const issuedId = loan ? esc(loan.staff_number) : '';
+      const issuedTime = loan ? fmtTime(loan.issued_at) : '';
+      const retName = loan && loan.returned_by_name ? esc(loan.returned_by_name) : '';
+      const retId = loan && loan.returned_by_staff_number ? esc(loan.returned_by_staff_number) : '';
+      const retTime = loan && loan.returned_at ? fmtTime(loan.returned_at) : '';
+
+      const row = document.createElement('div');
+      row.className = rowClass;
+      row.innerHTML = `
+        <div class="dc num">${idx + 1}</div>
+        <div class="dc center" style="font-size:11px; font-weight:700;">${esc(car.car_number)}</div>
+        <div class="dc center" style="font-size:10px;">${esc(car.reg_number)}</div>
+        <div class="dc name">${issuedName}</div>
+        <div class="dc center">${issuedId}</div>
+        <div class="dc center"></div>
+        <div class="dc center">${issuedTime}</div>
+        <div class="dc center divider" style="font-size:8px; color:#888;">${loan ? '' : ''}</div>
+        <div class="dc name">${retName}</div>
+        <div class="dc center">${retId}</div>
+        <div class="dc center"></div>
+        <div class="dc center">${retTime}</div>
+        <div class="dc center" style="font-size:8px; color:#888;"></div>
+      `;
+      body.appendChild(row);
+    });
+
+    // Spacer between groups
+    const spacer = document.createElement('div');
+    spacer.style.cssText = 'height:6px; border:1px solid #aaa; border-top:none; background:#e8e8e8;';
+    body.appendChild(spacer);
+  });
+}
+
+/* -------- init -------- */
+loadSheet();
+// Refresh every 30 s so active loans appear as they're created
+setInterval(loadSheet, 30000);
+</script>
+</body>
+</html>

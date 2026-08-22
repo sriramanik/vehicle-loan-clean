@@ -667,3 +667,19 @@ tbody tr:last-child td { border-bottom: none; }
   .modal { padding: 18px; }
   .summary-chip .num { font-size: 15px; }
 }
+
+/* ---------------- Detailed inspection per-item rows ---------------- */
+.insp-group-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.insp-item-row {
+  padding: 6px 0;
+}
+.insp-item-label {
+  font-size: 13px;
+}

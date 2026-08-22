@@ -21,9 +21,14 @@ const ALLOCATIONS = [
 const FUEL_LEVELS = ['Full', '3/4', 'Half', '1/4', 'Empty'];
 const MAX_REMARKS_PER_CAR = 5;
 
+// Detailed-mode per-item checklists (kept in sync with admin.js)
+const EXTERIOR_ITEMS = ['Headlights', 'Taillights', 'Beacon Lights', 'Brake Lights', 'Turn Signals', 'Windshield Condition', 'Tyres Condition', 'Tow Hitch Condition/Locking'];
+const INTERIOR_ITEMS = ['Seat Belts', 'Dashboard Condition', 'Seats Condition', 'Cleanliness', 'AC Cooling'];
+
 let quickAllOk = true;
-let extOk = true;
-let intOk = true;
+// per-item states for detailed mode: true = ok/yes, false = issue/no
+let exteriorItemStates = {};
+let interiorItemStates = {};
 let selectedFuel = null;
 
 function escapeHtml(str) {
@@ -240,9 +245,11 @@ function sheetOpenRemark() {
 
 function resetInspectionState() {
   quickAllOk = true;
-  extOk = true;
-  intOk = true;
   selectedFuel = null;
+  exteriorItemStates = {};
+  interiorItemStates = {};
+  EXTERIOR_ITEMS.forEach(item => { exteriorItemStates[item] = true; });
+  INTERIOR_ITEMS.forEach(item => { interiorItemStates[item] = true; });
 }
 
 function renderInspectionUI() {
@@ -252,7 +259,7 @@ function renderInspectionUI() {
   if (settings.inspection_mode === 'detailed') {
     quickBlock.style.display = 'none';
     detailedBlock.style.display = 'block';
-    renderExtIntSwitches();
+    renderItemChecklists();
     renderFuelSelector();
   } else {
     quickBlock.style.display = 'block';
@@ -271,12 +278,34 @@ function toggleQuickAllOk() {
   renderQuickSwitch();
 }
 
-function renderExtIntSwitches() {
-  document.getElementById('extOkSwitch').classList.toggle('on', extOk);
-  document.getElementById('intOkSwitch').classList.toggle('on', intOk);
+// Render per-item exterior/interior toggle rows
+function renderItemChecklists() {
+  const extBlock = document.getElementById('exteriorItemsBlock');
+  const intBlock = document.getElementById('interiorItemsBlock');
+  extBlock.innerHTML = EXTERIOR_ITEMS.map(item => buildItemRow(item, 'ext', exteriorItemStates[item])).join('');
+  intBlock.innerHTML = INTERIOR_ITEMS.map(item => buildItemRow(item, 'int', interiorItemStates[item])).join('');
 }
-function toggleExtOk() { extOk = !extOk; renderExtIntSwitches(); }
-function toggleIntOk() { intOk = !intOk; renderExtIntSwitches(); }
+
+function buildItemRow(item, group, okState) {
+  const safeId = `${group}_${item.replace(/[^a-z0-9]/gi, '_')}`;
+  return `
+    <div class="toggle-row-plain insp-item-row">
+      <span class="insp-item-label">${escapeHtml(item)}</span>
+      <button type="button" class="switch${okState ? ' on' : ''}" id="${safeId}" onclick="toggleInspItem('${group}','${item.replace(/'/g, "\\'")}','${safeId}')">
+        <span class="knob"></span>
+      </button>
+    </div>`;
+}
+
+function toggleInspItem(group, item, btnId) {
+  if (group === 'ext') {
+    exteriorItemStates[item] = !exteriorItemStates[item];
+    document.getElementById(btnId).classList.toggle('on', exteriorItemStates[item]);
+  } else {
+    interiorItemStates[item] = !interiorItemStates[item];
+    document.getElementById(btnId).classList.toggle('on', interiorItemStates[item]);
+  }
+}
 
 function renderFuelSelector() {
   const container = document.getElementById('fuelSelector');
@@ -400,10 +429,15 @@ async function submitLoan() {
 
   let inspection;
   if (settings.inspection_mode === 'detailed') {
+    // Build per-item exterior/interior maps (yes/no strings for legacy compatibility)
+    const exterior = {};
+    EXTERIOR_ITEMS.forEach(item => { exterior[item] = exteriorItemStates[item] ? 'yes' : 'no'; });
+    const interior = {};
+    INTERIOR_ITEMS.forEach(item => { interior[item] = interiorItemStates[item] ? 'yes' : 'no'; });
     inspection = {
       mode: 'detailed',
-      exterior_ok: extOk,
-      interior_ok: intOk,
+      exterior,
+      interior,
       fuel_level: selectedFuel,
       notes: document.getElementById('detailedNotes').value.trim()
     };

@@ -23,6 +23,7 @@
       </div>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="openHelpModal()">?</button>
+        <a href="control-sheet.html" class="btn btn-outline btn-sm btn-pill" target="_blank">Control Sheet</a>
         <a href="admin.html" class="btn btn-outline btn-sm btn-pill">Admin</a>
       </div>
     </div>
@@ -116,15 +117,11 @@
 
     <!-- Detailed inspection mode -->
     <div id="detailedInspectionBlock" style="display:none;">
-      <div class="toggle-row-plain">
-        <span>Exterior OK</span>
-        <button type="button" class="switch on" id="extOkSwitch" onclick="toggleExtOk()"><span class="knob"></span></button>
-      </div>
-      <div class="toggle-row-plain" style="margin-bottom:12px;">
-        <span>Interior OK</span>
-        <button type="button" class="switch on" id="intOkSwitch" onclick="toggleIntOk()"><span class="knob"></span></button>
-      </div>
-      <div class="field">
+      <div class="insp-group-label">Exterior items</div>
+      <div id="exteriorItemsBlock"></div>
+      <div class="insp-group-label" style="margin-top:10px;">Interior items</div>
+      <div id="interiorItemsBlock"></div>
+      <div class="field" style="margin-top:12px;">
         <label>Fuel level</label>
         <div class="fuel-selector" id="fuelSelector"></div>
       </div>
