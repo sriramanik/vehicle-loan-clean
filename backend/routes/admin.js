@@ -392,4 +392,112 @@ router.get('/archives/files/:filename', (req, res) => {
   res.download(filePath, req.params.filename);
 });
 
+// ---- DATABASE BACKUP / RESTORE ----
+
+// Full snapshot export — all tables as JSON, downloadable as a dated file
+router.get('/backup/export', (req, res) => {
+  const snapshot = {
+    exported_at: new Date().toISOString(),
+    version: 1,
+    cars:        db.prepare('SELECT * FROM cars').all(),
+    staff:       db.prepare('SELECT * FROM staff').all(),
+    loans:       db.prepare('SELECT * FROM loans').all(),
+    car_remarks: db.prepare('SELECT * FROM car_remarks').all(),
+    settings:    db.prepare('SELECT * FROM settings').all(),
+  };
+  const filename = `vehicle-loan-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  logAudit(req, 'backup.export', `Exported DB snapshot (${snapshot.loans.length} loans, ${snapshot.cars.length} cars)`);
+  res.json(snapshot);
+});
+
+// Full snapshot import — accepts a JSON file produced by the export endpoint.
+// mode=merge (default): upserts — existing rows kept, snapshot rows added/updated.
+// mode=replace: clears all tables first, then inserts snapshot rows.
+router.post('/backup/import', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+  let snapshot;
+  try {
+    snapshot = JSON.parse(req.file.buffer.toString('utf8'));
+  } catch (err) {
+    return res.status(400).json({ error: 'Invalid JSON: ' + err.message });
+  }
+
+  if (!snapshot.version || !Array.isArray(snapshot.cars) || !Array.isArray(snapshot.loans)) {
+    return res.status(400).json({ error: 'File does not look like a valid backup snapshot' });
+  }
+
+  const mode = (req.body.mode === 'replace') ? 'replace' : 'merge';
+
+  try {
+    db.transaction(() => {
+      if (mode === 'replace') {
+        db.prepare('DELETE FROM car_remarks').run();
+        db.prepare('DELETE FROM loans').run();
+        db.prepare('DELETE FROM cars').run();
+        db.prepare('DELETE FROM staff').run();
+        // leave settings alone in replace mode — app settings shouldn't reset on a data restore
+      }
+
+      const carUpsert = db.prepare(`
+        INSERT INTO cars (id, car_number, reg_number, allocation, status, created_at)
+        VALUES (@id, @car_number, @reg_number, @allocation, @status, @created_at)
+        ON CONFLICT(id) DO UPDATE SET
+          car_number = excluded.car_number,
+          reg_number = excluded.reg_number,
+          allocation = excluded.allocation,
+          status     = excluded.status
+      `);
+      for (const c of snapshot.cars || []) carUpsert.run(c);
+
+      const staffUpsert = db.prepare(`
+        INSERT INTO staff (staff_number, name, created_at)
+        VALUES (@staff_number, @name, @created_at)
+        ON CONFLICT(staff_number) DO UPDATE SET name = excluded.name
+      `);
+      for (const s of snapshot.staff || []) staffUpsert.run(s);
+
+      const loanInsert = db.prepare(`
+        INSERT INTO loans (id, car_id, car_number, reg_number, staff_number, staff_name,
+          team, duty_team, shift, shift_date, issued_at, returned_at,
+          returned_by_staff_number, returned_by_name, status, inspection_data)
+        VALUES (@id, @car_id, @car_number, @reg_number, @staff_number, @staff_name,
+          @team, @duty_team, @shift, @shift_date, @issued_at, @returned_at,
+          @returned_by_staff_number, @returned_by_name, @status, @inspection_data)
+        ON CONFLICT(id) DO NOTHING
+      `);
+      for (const l of snapshot.loans || []) loanInsert.run(l);
+
+      const remarkInsert = db.prepare(`
+        INSERT INTO car_remarks (id, car_id, remark_text, staff_number, staff_name, created_at)
+        VALUES (@id, @car_id, @remark_text, @staff_number, @staff_name, @created_at)
+        ON CONFLICT(id) DO NOTHING
+      `);
+      for (const r of snapshot.car_remarks || []) remarkInsert.run(r);
+
+      const settingsUpsert = db.prepare(`
+        INSERT INTO settings (key, value) VALUES (@key, @value)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+      `);
+      for (const s of snapshot.settings || []) settingsUpsert.run(s);
+    })();
+
+    logAudit(req, 'backup.import', `Imported snapshot (mode=${mode}) from ${snapshot.exported_at} — ${snapshot.loans.length} loans, ${snapshot.cars.length} cars`);
+    res.json({
+      success: true,
+      mode,
+      imported: {
+        cars:    (snapshot.cars    || []).length,
+        staff:   (snapshot.staff   || []).length,
+        loans:   (snapshot.loans   || []).length,
+        remarks: (snapshot.car_remarks || []).length,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Import failed: ' + err.message });
+  }
+});
+
 module.exports = router;

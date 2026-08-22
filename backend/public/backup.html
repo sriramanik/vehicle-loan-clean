@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DB Backup — Vehicle Loan</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f4f5f7;
+      --card-bg:  #ffffff;
+      --border:   #d0d5dd;
+      --text:     #1d2939;
+      --muted:    #667085;
+      --accent:   #1d4ed8;
+      --accent-h: #1e40af;
+      --danger:   #b91c1c;
+      --danger-h: #991b1b;
+      --success:  #15803d;
+      --warn-bg:  #fffbeb;
+      --warn-bdr: #fbbf24;
+      --warn-txt: #92400e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .page-wrap {
+      max-width: 560px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+    .sub { font-size: 0.85rem; color: var(--muted); margin-top: 3px; }
+
+    /* ---- login gate ---- */
+    #loginCard {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    #loginCard label { font-size: 0.875rem; font-weight: 600; }
+    #loginCard input[type=password] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.95rem;
+      outline: none;
+      margin-top: 5px;
+    }
+    #loginCard input[type=password]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(29,78,216,.15); }
+    #loginErr { color: var(--danger); font-size: 0.85rem; display: none; }
+
+    /* ---- main content ---- */
+    #mainContent { display: none; flex-direction: column; gap: 20px; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    .card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .card .desc { font-size: 0.83rem; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+
+    /* ---- buttons ---- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary  { background: var(--accent);  color: #fff; }
+    .btn-primary:hover  { background: var(--accent-h); }
+    .btn-danger   { background: var(--danger);  color: #fff; }
+    .btn-danger:hover   { background: var(--danger-h); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ---- import form ---- */
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; }
+    .field input[type=file] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.875rem;
+      background: var(--bg);
+    }
+
+    .radio-group { display: flex; gap: 16px; flex-wrap: wrap; }
+    .radio-group label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    }
+
+    .warn-box {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-bdr);
+      border-radius: 7px;
+      color: var(--warn-txt);
+      font-size: 0.83rem;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      display: none;
+      line-height: 1.5;
+    }
+    #replaceWarn { display: none; }
+
+    /* ---- feedback ---- */
+    .feedback {
+      border-radius: 7px;
+      padding: 12px 14px;
+      font-size: 0.875rem;
+      margin-top: 12px;
+      display: none;
+      line-height: 1.5;
+    }
+    .feedback.ok  { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .feedback.err { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 4px 0 16px; }
+
+    footer { text-align: center; font-size: 0.78rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div>
+    <h1>🗄️ Database Backup</h1>
+    <p class="sub">Export your data before a Docker redeploy — import it straight after.</p>
+  </div>
+
+  <!-- Login gate -->
+  <div id="loginCard">
+    <div>
+      <label for="pwdInput">Admin password</label>
+      <input type="password" id="pwdInput" placeholder="Enter admin password" autocomplete="current-password"/>
+    </div>
+    <div id="loginErr">Incorrect password — try again.</div>
+    <button class="btn btn-primary" onclick="doLogin()">Unlock</button>
+  </div>
+
+  <!-- Main content (shown after login) -->
+  <div id="mainContent">
+
+    <!-- Export -->
+    <div class="card">
+      <h2>⬇️ Export</h2>
+      <p class="desc">
+        Downloads a <code>.json</code> file containing every car, loan, staff record, remark, and
+        setting currently in the database. Save this file before doing a Docker pull / redeploy.
+      </p>
+      <button class="btn btn-primary" id="exportBtn" onclick="doExport()">
+        Download backup
+      </button>
+      <div id="exportFeedback" class="feedback"></div>
+    </div>
+
+    <!-- Import -->
+    <div class="card">
+      <h2>⬆️ Import</h2>
+      <p class="desc">
+        Select a backup <code>.json</code> file produced by the Export above, choose a mode, then
+        click Import. The server applies the restore inside a single transaction — either all rows
+        land or none do.
+      </p>
+
+      <div class="field">
+        <label>Backup file</label>
+        <input type="file" id="importFile" accept=".json,application/json"/>
+      </div>
+
+      <div class="field">
+        <label>Restore mode</label>
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="mode" value="merge" checked onchange="onModeChange()"/>
+            Merge <span style="font-weight:400;color:var(--muted)">(add/update, keep existing rows)</span>
+          </label>
+          <label>
+            <input type="radio" name="mode" value="replace" onchange="onModeChange()"/>
+            Replace <span style="font-weight:400;color:var(--muted)">(clear all data first)</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="replaceWarn" class="warn-box">
+        ⚠️ <strong>Replace mode</strong> deletes every car, loan, staff record, and remark from the
+        database before restoring the snapshot. This cannot be undone. Only use this on a fresh
+        install where you want to restore an earlier state completely.
+      </div>
+
+      <button class="btn btn-danger" id="importBtn" onclick="doImport()">
+        Import backup
+      </button>
+      <div id="importFeedback" class="feedback"></div>
+    </div>
+
+  </div><!-- /mainContent -->
+
+  <footer>Vehicle Loan System — Backup &amp; Restore</footer>
+</div>
+
+<script>
+  let adminPassword = '';
+
+  // ---- Login ----
+  document.getElementById('pwdInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const pwd = document.getElementById('pwdInput').value.trim();
+    if (!pwd) return;
+    const err = document.getElementById('loginErr');
+    err.style.display = 'none';
+
+    try {
+      const r = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      });
+      if (!r.ok) { err.style.display = 'block'; return; }
+      adminPassword = pwd;
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'flex';
+    } catch {
+      err.textContent = 'Network error — is the server running?';
+      err.style.display = 'block';
+    }
+  }
+
+  // ---- Mode toggle ----
+  function onModeChange() {
+    const mode = document.querySelector('input[name=mode]:checked').value;
+    document.getElementById('replaceWarn').style.display = (mode === 'replace') ? 'block' : 'none';
+  }
+
+  // ---- Export ----
+  async function doExport() {
+    const btn = document.getElementById('exportBtn');
+    const fb  = document.getElementById('exportFeedback');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Preparing…';
+    fb.style.display = 'none';
+
+    try {
+      const r = await fetch('/api/admin/backup/export', {
+        headers: { 'x-admin-password': adminPassword }
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.error || `Server error ${r.status}`);
+      }
+
+      // Trigger a file download from the response blob
+      const blob = await r.blob();
+      const cd   = r.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="?([^"]+)"?/);
+      const name  = match ? match[1] : `vehicle-loan-backup-${today()}.json`;
+      const url   = URL.createObjectURL(blob);
+      const a     = document.createElement('a');
+      a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+
+      showFeedback('exportFeedback', 'ok', '✓ Backup downloaded — keep this file safe before your redeploy.');
+    } catch (err) {
+      showFeedback('exportFeedback', 'err', '✗ Export failed: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Download backup';
+    }
+  }
+
+  // ---- Import ----
+  async function doImport() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    if (!file) {
+      showFeedback('importFeedback', 'err', 'Please choose a backup .json file first.');
+      return;
+    }
+
+    const mode = document.querySelector('input[name=mode]:checked').value;
+    if (mode === 'replace') {
+      const ok = confirm(
+        'REPLACE mode will DELETE all cars, loans, staff, and remarks from the live database,\n' +
+        'then restore the snapshot.\n\nThis cannot be undone. Are you sure?'
+      );
+      if (!ok) return;
+    }
+
+    const btn = document.getElementById('importBtn');
+    const fb  = document.getElementById('importFeedback');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Importing…';
+    fb.style.display = 'none';
+
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('mode', mode);
+
+      const r = await fetch('/api/admin/backup/import', {
+        method: 'POST',
+        headers: { 'x-admin-password': adminPassword },
+        body: form
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || `Server error ${r.status}`);
+
+      const { imported } = j;
+      showFeedback('importFeedback', 'ok',
+        `✓ Import complete (mode: ${mode}).\n` +
+        `  Cars: ${imported.cars}  |  Staff: ${imported.staff}  |  Loans: ${imported.loans}  |  Remarks: ${imported.remarks}`
+      );
+      fileInput.value = '';
+    } catch (err) {
+      showFeedback('importFeedback', 'err', '✗ Import failed: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Import backup';
+    }
+  }
+
+  // ---- helpers ----
+  function showFeedback(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'feedback ' + type;
+    el.style.whiteSpace = 'pre-line';
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function today() {
+    return new Date().toISOString().slice(0, 10);
+  }
+</script>
+</body>
+</html>
