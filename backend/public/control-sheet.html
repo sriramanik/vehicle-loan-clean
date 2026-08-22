@@ -4,21 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vehicle Control Sheet · Air Arabia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-/* ============ TOOLBAR (screen only) ============ */
+* { box-sizing: border-box; }
+
+/* ============ TOOLBAR (hidden on print) ============ */
 .cs-toolbar {
   background: #1a1a2e;
   color: #fff;
-  padding: 10px 16px;
+  padding: 10px 18px;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  font-family: Arial, sans-serif;
-  font-size: 13px;
+  font-family: 'Inter', Arial, sans-serif;
 }
 .cs-btn {
-  padding: 6px 14px;
+  padding: 6px 15px;
   border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.3);
   background: transparent;
@@ -29,153 +32,155 @@
   white-space: nowrap;
   font-family: inherit;
   text-decoration: none;
+  display: inline-block;
 }
-.cs-btn:hover { background: rgba(255,255,255,0.1); }
+.cs-btn:hover { background: rgba(255,255,255,0.12); }
 .cs-btn.active  { background: #e8192c; border-color: #e8192c; }
 .cs-btn.primary { background: #e8192c; border-color: #e8192c; }
-.cs-sep { width: 1px; height: 24px; background: rgba(255,255,255,0.2); flex-shrink:0; }
+.cs-sep  { width: 1px; height: 26px; background: rgba(255,255,255,0.2); flex-shrink: 0; }
 .cs-flex { flex: 1; }
-.cs-status { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+.cs-status { font-size: 12px; color: rgba(255,255,255,0.6); }
 
 /* ============ PAGE SHELL ============ */
 body {
   margin: 0;
-  background: #ccc;
-  font-family: Arial, sans-serif;
+  background: #bbb;
+  font-family: 'Inter', Arial, sans-serif;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 .cs-page-wrapper {
-  max-width: 1120px;
-  margin: 14px auto 40px;
-  padding: 0 12px;
+  max-width: 1150px;
+  margin: 16px auto 40px;
+  padding: 0 14px;
 }
 .cs-page {
   background: #fff;
-  padding: 10px 12px;
-  box-shadow: 0 3px 18px rgba(0,0,0,0.18);
+  padding: 12px 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
 
-/* ============ DOCUMENT HEADER ============ */
+/* ============ DOC HEADER ============ */
 .doc-header {
   display: grid;
-  grid-template-columns: 150px 1fr 160px;
-  border: 2px solid #222;
+  grid-template-columns: 160px 1fr 155px;
+  border: 2px solid #111;
   margin-bottom: 0;
 }
-
-/* Logo cell */
 .logo-cell {
   padding: 8px 10px;
-  border-right: 2px solid #222;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-right: 2px solid #111;
+  display: flex; align-items: center; justify-content: center;
 }
-
-/* Meta cells */
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
 }
 .meta-cell {
-  padding: 5px 10px;
-  border-right: 1px solid #bbb;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1px;
+  padding: 6px 12px;
+  border-right: 1px solid #ccc;
+  display: flex; flex-direction: column; justify-content: center; gap: 1px;
 }
 .meta-cell:last-child { border-right: none; }
-.meta-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; }
-.meta-val   { font-size: 18px; font-weight: 800; color: #111; line-height: 1.1; }
-.meta-val-sm { font-size: 12px; font-weight: 700; color: #111; }
-
-/* Title cell */
+.meta-label { font-size: 8.5px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+.meta-val   { font-size: 20px; font-weight: 800; color: #111; line-height: 1.1; }
+.meta-val-sm { font-size: 13px; font-weight: 700; color: #111; }
 .title-cell {
   padding: 6px 12px;
-  border-left: 2px solid #222;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-end;
-  text-align: right;
+  border-left: 2px solid #111;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right;
 }
-.doc-title { font-size: 13px; font-weight: 800; line-height: 1.35; }
-.doc-rev   { font-size: 9px; color: #888; margin-top: 3px; }
+.doc-title { font-size: 14px; font-weight: 800; line-height: 1.3; color: #111; }
+.doc-rev   { font-size: 9px; color: #aaa; margin-top: 3px; }
 
-/* ============ CONTROL TABLE ============ */
+/* ============ TABLE ============ */
 .cs-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #999;
+  border: 1.5px solid #888;
   border-top: none;
   table-layout: fixed;
+  font-family: 'Inter', Arial, sans-serif;
 }
 
-/* Column header spanning rows */
+/* Column header rows */
 .cs-table thead tr.hdr-top th {
-  background: #e8e8e8;
-  font-size: 9.5px;
+  background: #e4e4e4;
+  font-size: 10px;
   font-weight: 800;
   text-align: center;
-  padding: 4px 4px;
+  padding: 5px 4px;
   border: 1px solid #999;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
+  color: #222;
 }
 .cs-table thead tr.hdr-sub th {
-  background: #f2f2f2;
-  font-size: 8.5px;
+  background: #f3f3f3;
+  font-size: 9px;
   font-weight: 700;
   text-align: center;
-  padding: 3px 2px;
+  padding: 4px 2px;
   border: 1px solid #bbb;
   text-transform: uppercase;
   letter-spacing: 0.2px;
+  color: #444;
 }
-.th-divider { border-left: 2px solid #777 !important; }
+.th-divider { border-left: 2px solid #666 !important; }
 
-/* Group header rows (tbody) */
+/* Group rows */
 .group-row td {
-  background: #d0d0d0 !important;
-  font-size: 10px;
+  background: #d4d4d4 !important;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 3px 7px !important;
-  border: 1px solid #999 !important;
+  letter-spacing: 0.6px;
+  padding: 4px 8px !important;
+  border: 1.5px solid #999 !important;
   white-space: nowrap;
-  overflow: visible !important;
+  color: #111;
 }
-.group-row.cabin-row td { background: #ffd600 !important; color: #111 !important; }
+.group-row.cabin-row td {
+  background: #ffd600 !important;
+  color: #111 !important;
+  border-color: #c8a800 !important;
+}
 .group-badge {
   display: inline-block;
   background: #555;
   color: #fff;
-  font-size: 8px;
-  padding: 0 4px;
-  border-radius: 2px;
-  margin-left: 6px;
-  vertical-align: middle;
+  font-size: 8.5px;
   font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 7px;
+  vertical-align: middle;
 }
 .cabin-row .group-badge { background: #b89800; }
 
-/* Data cells */
+/* Data rows */
 .cs-table tbody tr.data-row td {
-  font-size: 10px;
-  padding: 3px 4px;
-  border: 1px solid #d0d0d0;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 4px 5px;
+  border: 1px solid #d4d4d4;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #111;
 }
 .cs-table tbody tr.data-row td.center { text-align: center; }
-.cs-table tbody tr.data-row td.bold   { font-weight: 700; }
-.cs-table tbody tr.data-row td.td-div { border-left: 2px solid #777 !important; }
+.cs-table tbody tr.data-row td.bold   { font-weight: 800; font-size: 11.5px; }
+.cs-table tbody tr.data-row td.td-div { border-left: 2px solid #666 !important; }
+.cs-table tbody tr.data-row td.alloc  {
+  font-size: 9px;
+  font-weight: 600;
+  color: #555;
+  white-space: normal;
+  line-height: 1.2;
+  text-align: center;
+}
 
-/* Row status colours */
+/* Status row colours */
 .row-active   { background: #fff8e1; }
 .row-returned { background: #edfff2; }
 .row-available { background: #fff; }
@@ -185,18 +190,32 @@ body {
   .cs-toolbar { display: none !important; }
   body { background: #fff; margin: 0; }
   .cs-page-wrapper { max-width: 100%; margin: 0; padding: 0; }
-  .cs-page { box-shadow: none; padding: 5px 7px; }
 
-  .cs-table thead tr.hdr-top th,
+  /* @page margin:0 suppresses browser URL / date header & footer */
+  .cs-page {
+    box-shadow: none;
+    /* compensate for @page margin:0 */
+    padding: 8mm 10mm;
+  }
+
+  .cs-table thead tr.hdr-top th { font-size: 8px;  padding: 3px 2px; }
   .cs-table thead tr.hdr-sub th { font-size: 7.5px; padding: 2px 2px; }
-  .cs-table tbody tr.data-row td { font-size: 8.5px; padding: 2px 3px; }
-  .group-row td { font-size: 8.5px; padding: 2px 5px !important; }
-  .meta-val { font-size: 14px; }
-  .doc-title { font-size: 11px; }
+
+  /* Taller rows so there's room to handwrite */
+  .cs-table tbody tr.data-row { height: 9mm; }
+  .cs-table tbody tr.data-row td {
+    font-size: 9px;
+    padding: 0 4px;
+  }
+  .cs-table tbody tr.data-row td.bold { font-size: 10px; }
+  .cs-table tbody tr.data-row td.alloc { font-size: 7.5px; }
+  .group-row td { font-size: 9px; padding: 3px 6px !important; }
+  .meta-val { font-size: 16px; }
 }
 @page {
   size: A4 landscape;
-  margin: 7mm 9mm;
+  /* Zero margin removes browser-generated URL / date / page-number strip */
+  margin: 0;
 }
 </style>
 </head>
@@ -206,7 +225,7 @@ body {
 <div class="cs-toolbar">
   <div style="display:flex;gap:4px;">
     <button class="cs-btn" id="btnYesterday" onclick="setDateOffset(-1)">− Yesterday</button>
-    <button class="cs-btn active" id="btnToday"     onclick="setDateOffset(0)">Today</button>
+    <button class="cs-btn active" id="btnToday"    onclick="setDateOffset(0)">Today</button>
     <button class="cs-btn" id="btnTomorrow"  onclick="setDateOffset(1)">+ Tomorrow</button>
   </div>
   <div class="cs-sep"></div>
@@ -227,16 +246,16 @@ body {
 
   <!-- Document header -->
   <div class="doc-header">
-    <!-- Air Arabia logo -->
     <div class="logo-cell">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 64" width="138" height="49">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 64" width="140" height="50">
         <rect width="180" height="64" rx="4" fill="#e8192c"/>
-        <text x="90" y="41" fill="white" font-family="Arial Black,Arial,sans-serif"
-              font-size="26" font-weight="900" text-anchor="middle" letter-spacing="-0.5">AirArabia</text>
+        <text x="90" y="41" fill="white"
+              font-family="Arial Black,Arial,sans-serif"
+              font-size="28" font-weight="900"
+              text-anchor="middle" letter-spacing="-0.5">AirArabia</text>
       </svg>
     </div>
 
-    <!-- Meta: Team / Shift / Date / Generated -->
     <div class="meta-grid">
       <div class="meta-cell">
         <span class="meta-label">Team</span>
@@ -256,40 +275,39 @@ body {
       </div>
     </div>
 
-    <!-- Title -->
     <div class="title-cell">
       <span class="doc-title">Vehicle Control<br>Sheet</span>
       <span class="doc-rev" id="hdrRev">REV —</span>
     </div>
   </div>
 
-  <!-- Control table -->
+  <!-- Data table -->
   <table class="cs-table">
     <thead>
       <tr class="hdr-top">
         <th rowspan="2" style="width:22px;">#</th>
-        <th rowspan="2" style="width:38px;">Car #</th>
-        <th rowspan="2" style="width:64px;">Reg #</th>
-        <th rowspan="2" style="width:80px;">Allocation</th>
+        <th rowspan="2" style="width:42px;">Car #</th>
+        <th rowspan="2" style="width:68px;">Reg #</th>
+        <th rowspan="2" style="width:90px;">Allocation</th>
         <th colspan="4">Issued to</th>
         <th colspan="4" class="th-divider">Returned by</th>
       </tr>
       <tr class="hdr-sub">
-        <th style="width:14%;">Name</th>
-        <th style="width:7%;">Staff No.</th>
-        <th style="width:6%;">Signature</th>
-        <th style="width:7%;">Time</th>
-        <th class="th-divider" style="width:14%;">Name</th>
-        <th style="width:7%;">Staff No.</th>
-        <th style="width:6%;">Signature</th>
-        <th style="width:7%;">Time</th>
+        <th style="width:15%;">Name</th>
+        <th style="width:8%;">Staff No.</th>
+        <th style="width:7%;">Signature</th>
+        <th style="width:8%;">Time</th>
+        <th class="th-divider" style="width:15%;">Name</th>
+        <th style="width:8%;">Staff No.</th>
+        <th style="width:7%;">Signature</th>
+        <th style="width:8%;">Time</th>
       </tr>
     </thead>
     <tbody id="csBody"></tbody>
   </table>
 
-</div><!-- .cs-page -->
-</div><!-- .cs-page-wrapper -->
+</div>
+</div>
 
 <script>
 /* ====== CONFIG ====== */
@@ -302,55 +320,59 @@ const ALLOCATIONS = [
 ];
 const ALLOC_LABEL = {
   'LSM / LMM':                'LSM / LMM',
-  'B1 ENGINEER / TECHNICIAN': 'Engineer B1 / B1 Tech',
-  'B2 ENGINEER':              'Engineer B2',
-  'CAT A TECHNICIAN':         'CAT A Technician',
-  'CABIN TEAM':               'Cabin Team'
+  'B1 ENGINEER / TECHNICIAN': 'B1 ENG / TECH',
+  'B2 ENGINEER':              'B2 ENGINEER',
+  'CAT A TECHNICIAN':         'CAT A TECH',
+  'CABIN TEAM':               'CABIN TEAM'
+};
+const ALLOC_GROUP = {
+  'LSM / LMM':                'LSM / LMM',
+  'B1 ENGINEER / TECHNICIAN': 'ENGINEER B1 / B1 TECH',
+  'B2 ENGINEER':              'ENGINEER B2',
+  'CAT A TECHNICIAN':         'CAT A TECHNICIAN',
+  'CABIN TEAM':               'CABIN TEAM',
+  'OTHER':                    'OTHER / UNASSIGNED'
 };
 
 /* ====== STATE ====== */
-let dateOffset  = 0;        // -1 | 0 | 1
-let shiftFilter = '';       // 'day' | 'night'
+let dateOffset  = 0;     // -1 | 0 | 1
+let shiftFilter = '';    // 'day' | 'night'
 
 /* ====== HELPERS ====== */
 function uaeDateStr(off = 0) {
   const t = new Date(Date.now() + (4 * 3600 + off * 86400) * 1000);
-  const y = t.getUTCFullYear();
-  const m = String(t.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(t.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return [
+    t.getUTCFullYear(),
+    String(t.getUTCMonth() + 1).padStart(2, '0'),
+    String(t.getUTCDate()).padStart(2, '0')
+  ].join('-');
 }
-
 function uaeHour() {
   return new Date(Date.now() + 4 * 3600 * 1000).getUTCHours();
 }
-
-function fmtDisplay(iso) {           // "2026-08-22" → "22.08.26"
+function fmtDisplay(iso) {
   const [y, m, d] = iso.split('-');
   return `${d}.${m}.${y.slice(2)}`;
 }
-
 function fmtTime(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleString('en-GB', {
     timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit'
   });
 }
-
 function esc(s) {
   return String(s || '').replace(/[&<>"']/g,
-    c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 /* ====== CONTROLS ====== */
 function setDateOffset(off) {
   dateOffset = off;
-  ['btnYesterday','btnToday','btnTomorrow'].forEach((id, i) => {
-    document.getElementById(id).classList.toggle('active', i === off + 1);
-  });
+  document.getElementById('btnYesterday').classList.toggle('active', off === -1);
+  document.getElementById('btnToday').classList.toggle('active',     off === 0);
+  document.getElementById('btnTomorrow').classList.toggle('active',  off === 1);
   loadSheet();
 }
-
 function setShift(s) {
   shiftFilter = s;
   document.getElementById('btnDay').classList.toggle('active',   s === 'day');
@@ -362,47 +384,41 @@ function setShift(s) {
 async function loadSheet() {
   const date = uaeDateStr(dateOffset);
   document.getElementById('csStatus').textContent = 'Loading…';
-
-  const url = `/api/loans/control-sheet?date=${date}` + (shiftFilter ? `&shift=${shiftFilter}` : '');
-
+  const url = `/api/loans/control-sheet?date=${date}&shift=${shiftFilter}`;
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error('API ' + res.status);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     renderSheet(data);
-    const sl = shiftFilter === 'day' ? 'M' : shiftFilter === 'night' ? 'N' : (data.isDay ? 'M' : 'N');
+    const sl = shiftFilter === 'night' ? 'N' : 'M';
     document.getElementById('csStatus').textContent =
-      `${data.cars.length} cars · Team ${data.duty_team || '?'} · ${sl} shift`;
-  } catch (e) {
+      `${data.cars.length} cars · Team ${data.duty_team || '?'} · Shift ${sl}`;
+  } catch(e) {
     document.getElementById('csStatus').textContent = 'Load failed — ' + e.message;
   }
 }
 
 /* ====== RENDER ====== */
 function renderSheet(data) {
-  const sl = shiftFilter === 'day' ? 'M' : shiftFilter === 'night' ? 'N' : (data.isDay ? 'M' : 'N');
-
-  document.getElementById('hdrTeam').textContent      = data.duty_team || '—';
-  document.getElementById('hdrShift').textContent     = sl;
-  document.getElementById('hdrDate').textContent      = fmtDisplay(data.date);
-  document.getElementById('hdrRev').textContent       = 'REV ' + fmtDisplay(data.date);
-
+  const sl = shiftFilter === 'night' ? 'N' : 'M';
+  document.getElementById('hdrTeam').textContent    = data.duty_team || '—';
+  document.getElementById('hdrShift').textContent   = sl;
+  document.getElementById('hdrDate').textContent    = fmtDisplay(data.date);
+  document.getElementById('hdrRev').textContent     = 'REV ' + fmtDisplay(data.date);
   const nowStr = new Date().toLocaleString('en-GB', {
     timeZone: 'Asia/Dubai', day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit'
   });
   document.getElementById('hdrGenerated').textContent = nowStr;
 
-  /* Group cars */
+  /* Group cars by allocation */
   const groups = {};
   ALLOCATIONS.forEach(a => { groups[a] = []; });
   groups['OTHER'] = [];
-
   data.cars.forEach(car => {
     const key = ALLOCATIONS.includes(car.allocation) ? car.allocation : 'OTHER';
     groups[key].push(car);
   });
-
   const natSort = (a, b) =>
     a.car_number.localeCompare(b.car_number, undefined, { numeric: true, sensitivity: 'base' });
   Object.values(groups).forEach(g => g.sort(natSort));
@@ -415,27 +431,26 @@ function renderSheet(data) {
     if (!cars.length) return;
 
     const isCabin = key === 'CABIN TEAM';
-    const label   = ALLOC_LABEL[key] || key;
+    const groupLabel = ALLOC_GROUP[key] || key;
+    const cellLabel  = ALLOC_LABEL[key]  || key;
 
-    /* Group header row */
+    /* Group header */
     const gtr = document.createElement('tr');
     gtr.className = 'group-row' + (isCabin ? ' cabin-row' : '');
-    gtr.innerHTML = `<td colspan="12">${esc(label)}<span class="group-badge">${cars.length} car${cars.length !== 1 ? 's' : ''}</span></td>`;
+    gtr.innerHTML = `<td colspan="12">${esc(groupLabel)}<span class="group-badge">${cars.length} car${cars.length !== 1 ? 's' : ''}</span></td>`;
     body.appendChild(gtr);
 
     /* Data rows */
     cars.forEach((car, idx) => {
       const loan = car.loan;
-      const rc   = loan ? (loan.status === 'active' ? 'row-active' : 'row-returned') : 'row-available';
+      const rc = loan ? (loan.status === 'active' ? 'row-active' : 'row-returned') : 'row-available';
 
       const issuedName = loan ? esc(loan.staff_name   || '') : '';
       const issuedId   = loan ? esc(loan.staff_number || '') : '';
       const issuedTime = loan ? fmtTime(loan.issued_at) : '';
-      const retName    = loan && loan.returned_by_name          ? esc(loan.returned_by_name)          : '';
-      const retId      = loan && loan.returned_by_staff_number  ? esc(loan.returned_by_staff_number)  : '';
-      const retTime    = loan && loan.returned_at               ? fmtTime(loan.returned_at)           : '';
-
-      const allocDisplay = esc(car.allocation || '—');
+      const retName    = (loan && loan.returned_by_name)         ? esc(loan.returned_by_name)         : '';
+      const retId      = (loan && loan.returned_by_staff_number) ? esc(loan.returned_by_staff_number) : '';
+      const retTime    = (loan && loan.returned_at)              ? fmtTime(loan.returned_at)          : '';
 
       const tr = document.createElement('tr');
       tr.className = `data-row ${rc}`;
@@ -443,7 +458,7 @@ function renderSheet(data) {
         <td class="center bold">${idx + 1}</td>
         <td class="center bold">${esc(car.car_number)}</td>
         <td class="center">${esc(car.reg_number)}</td>
-        <td class="center" style="font-size:8.5px; color:#555;">${allocDisplay}</td>
+        <td class="alloc">${esc(cellLabel)}</td>
         <td>${issuedName}</td>
         <td class="center">${issuedId}</td>
         <td></td>

@@ -100,17 +100,12 @@ router.get('/control-sheet', (req, res) => {
   const defaultDate = `${uaeParts.year}-${String(uaeParts.month + 1).padStart(2, '0')}-${String(uaeParts.day).padStart(2, '0')}`;
   const targetDate = date || defaultDate;
 
-  // Determine duty team / shift for this date (using current time for today; for
-  // past/future dates we derive from the date alone by using noon UAE time as anchor).
-  let dutyInfo;
-  if (targetDate === defaultDate) {
-    dutyInfo = getCurrentDuty(now);
-  } else {
-    // Synthesise a noon-UTC+4 timestamp for the target date to get day-shift duty team
-    const [ty, tm, td] = targetDate.split('-').map(Number);
-    const anchor = new Date(Date.UTC(ty, tm - 1, td, 8, 0, 0)); // 08:00 UTC = 12:00 UAE
-    dutyInfo = getCurrentDuty(anchor);
-  }
+  // Anchor inside the correct shift window so getCurrentDuty returns the right team.
+  // Day (M): 10:00 UAE = 06:00 UTC.  Night (N): 20:00 UAE = 16:00 UTC.
+  const [ty, tm, td] = targetDate.split('-').map(Number);
+  const hourUTC = (shift === 'night') ? 16 : 6;
+  const anchor = new Date(Date.UTC(ty, tm - 1, td, hourUTC, 0, 0));
+  const dutyInfo = getCurrentDuty(anchor);
 
   // All cars, ordered by allocation group then car_number
   const cars = db.prepare('SELECT * FROM cars ORDER BY allocation, car_number').all();
