@@ -9,30 +9,20 @@
 <style>
 * { box-sizing: border-box; }
 
-/* ============ TOOLBAR (hidden on print) ============ */
+/* ============ TOOLBAR ============ */
 .cs-toolbar {
-  background: #1a1a2e;
-  color: #fff;
+  background: #1a1a2e; color: #fff;
   padding: 10px 18px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   font-family: 'Inter', Arial, sans-serif;
 }
 .cs-btn {
-  padding: 6px 15px;
-  border-radius: 6px;
+  padding: 6px 15px; border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.3);
-  background: transparent;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  font-family: inherit;
-  text-decoration: none;
-  display: inline-block;
+  background: transparent; color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; font-family: inherit;
+  text-decoration: none; display: inline-block;
 }
 .cs-btn:hover { background: rgba(255,255,255,0.12); }
 .cs-btn.active  { background: #e8192c; border-color: #e8192c; }
@@ -43,190 +33,145 @@
 
 /* ============ PAGE SHELL ============ */
 body {
-  margin: 0;
-  background: #bbb;
+  margin: 0; background: #bbb;
   font-family: 'Inter', Arial, sans-serif;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-.cs-page-wrapper {
-  max-width: 1150px;
-  margin: 16px auto 40px;
-  padding: 0 14px;
-}
-.cs-page {
-  background: #fff;
-  padding: 12px 14px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
+.cs-page-wrapper { max-width: 1150px; margin: 16px auto 40px; padding: 0 14px; }
+.cs-page { background: #fff; padding: 12px 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
 
 /* ============ DOC HEADER ============ */
 .doc-header {
-  display: grid;
-  grid-template-columns: 160px 1fr 155px;
-  border: 2px solid #111;
-  margin-bottom: 0;
+  display: grid; grid-template-columns: 155px 1fr 155px;
+  border: 2px solid #111; margin-bottom: 0;
 }
 .logo-cell {
-  padding: 8px 10px;
-  border-right: 2px solid #111;
+  padding: 7px 10px; border-right: 2px solid #111;
   display: flex; align-items: center; justify-content: center;
 }
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-}
+.meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
 .meta-cell {
-  padding: 6px 12px;
-  border-right: 1px solid #ccc;
+  padding: 5px 12px; border-right: 1px solid #ccc;
   display: flex; flex-direction: column; justify-content: center; gap: 1px;
 }
 .meta-cell:last-child { border-right: none; }
-.meta-label { font-size: 8.5px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+.meta-label { font-size: 8px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
 .meta-val   { font-size: 20px; font-weight: 800; color: #111; line-height: 1.1; }
-.meta-val-sm { font-size: 13px; font-weight: 700; color: #111; }
+.meta-val-sm { font-size: 12px; font-weight: 700; color: #111; }
 .title-cell {
-  padding: 6px 12px;
-  border-left: 2px solid #111;
-  display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right;
+  padding: 6px 12px; border-left: 2px solid #111;
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: flex-end; text-align: right;
 }
-.doc-title { font-size: 14px; font-weight: 800; line-height: 1.3; color: #111; }
-.doc-rev   { font-size: 9px; color: #aaa; margin-top: 3px; }
+.doc-title { font-size: 13px; font-weight: 800; line-height: 1.3; color: #111; }
+.doc-rev   { font-size: 9px; color: #aaa; margin-top: 2px; }
 
 /* ============ TABLE ============ */
 .cs-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1.5px solid #888;
-  border-top: none;
+  width: 100%; border-collapse: collapse;
+  border: 1.5px solid #888; border-top: none;
   table-layout: fixed;
   font-family: 'Inter', Arial, sans-serif;
 }
-
-/* Column header rows */
 .cs-table thead tr.hdr-top th {
-  background: #e4e4e4;
-  font-size: 10px;
-  font-weight: 800;
-  text-align: center;
-  padding: 5px 4px;
-  border: 1px solid #999;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #222;
+  background: #e4e4e4; font-size: 9.5px; font-weight: 800;
+  text-align: center; padding: 4px 3px;
+  border: 1px solid #999; text-transform: uppercase;
+  letter-spacing: 0.4px; color: #222;
 }
 .cs-table thead tr.hdr-sub th {
-  background: #f3f3f3;
-  font-size: 9px;
-  font-weight: 700;
-  text-align: center;
-  padding: 4px 2px;
-  border: 1px solid #bbb;
-  text-transform: uppercase;
-  letter-spacing: 0.2px;
-  color: #444;
+  background: #f3f3f3; font-size: 8.5px; font-weight: 700;
+  text-align: center; padding: 3px 2px;
+  border: 1px solid #bbb; text-transform: uppercase;
+  letter-spacing: 0.2px; color: #444;
 }
 .th-divider { border-left: 2px solid #666 !important; }
 
 /* Group rows */
 .group-row td {
-  background: #d4d4d4 !important;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 4px 8px !important;
-  border: 1.5px solid #999 !important;
-  white-space: nowrap;
-  color: #111;
+  background: #d4d4d4 !important; font-size: 10.5px;
+  font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 3px 8px !important; border: 1.5px solid #999 !important;
+  white-space: nowrap; color: #111;
 }
-.group-row.cabin-row td {
-  background: #ffd600 !important;
-  color: #111 !important;
-  border-color: #c8a800 !important;
-}
+.group-row.cabin-row td { background: #ffd600 !important; color: #111 !important; border-color: #c8a800 !important; }
+.group-row.oos-row td  { background: #555 !important; color: #fff !important; border-color: #333 !important; }
 .group-badge {
-  display: inline-block;
-  background: #555;
-  color: #fff;
-  font-size: 8.5px;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 3px;
-  margin-left: 7px;
-  vertical-align: middle;
+  display: inline-block; background: #555; color: #fff;
+  font-size: 8px; font-weight: 700; padding: 1px 5px;
+  border-radius: 3px; margin-left: 6px; vertical-align: middle;
 }
 .cabin-row .group-badge { background: #b89800; }
+.oos-row   .group-badge { background: #333; }
 
 /* Data rows */
 .cs-table tbody tr.data-row td {
-  font-size: 10.5px;
-  font-weight: 500;
-  padding: 4px 5px;
-  border: 1px solid #d4d4d4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #111;
+  font-size: 10px; font-weight: 500; padding: 3px 5px;
+  border: 1px solid #d4d4d4; overflow: hidden;
+  text-overflow: ellipsis; color: #111;
 }
-.cs-table tbody tr.data-row td.center { text-align: center; }
-.cs-table tbody tr.data-row td.bold   { font-weight: 800; font-size: 11.5px; }
-.cs-table tbody tr.data-row td.td-div { border-left: 2px solid #666 !important; }
-.cs-table tbody tr.data-row td.alloc  {
-  font-size: 9px;
-  font-weight: 600;
-  color: #555;
-  white-space: normal;
-  line-height: 1.2;
-  text-align: center;
+.cs-table tbody tr.data-row td.center   { text-align: center; }
+.cs-table tbody tr.data-row td.bold     { font-weight: 800; font-size: 11px; }
+.cs-table tbody tr.data-row td.td-div   { border-left: 2px solid #666 !important; }
+.cs-table tbody tr.data-row td.alloc    {
+  font-size: 8.5px; font-weight: 600; color: #555;
+  white-space: normal; line-height: 1.2; text-align: center;
+}
+.cs-table tbody tr.data-row td.oos-cell {
+  text-align: center; font-size: 9.5px; font-weight: 800;
+  color: #888; letter-spacing: 0.8px; text-transform: uppercase;
+  background: #f5f5f5;
 }
 
-/* Status row colours */
+/* Status colours */
 .row-active   { background: #fff8e1; }
 .row-returned { background: #edfff2; }
 .row-available { background: #fff; }
+.row-oos      { background: #f5f5f5; }
 
 /* ============ PRINT ============ */
 @media print {
   .cs-toolbar { display: none !important; }
   body { background: #fff; margin: 0; }
   .cs-page-wrapper { max-width: 100%; margin: 0; padding: 0; }
+  .cs-page { box-shadow: none; padding: 6mm 8mm; }
 
-  /* @page margin:0 suppresses browser URL / date header & footer */
-  .cs-page {
-    box-shadow: none;
-    /* compensate for @page margin:0 */
-    padding: 8mm 10mm;
-  }
+  .doc-header { margin-bottom: 0; }
+  .meta-val   { font-size: 15px; }
 
-  .cs-table thead tr.hdr-top th { font-size: 8px;  padding: 3px 2px; }
-  .cs-table thead tr.hdr-sub th { font-size: 7.5px; padding: 2px 2px; }
+  .cs-table thead tr.hdr-top th { font-size: 7.5px; padding: 2px 2px; }
+  .cs-table thead tr.hdr-sub th { font-size: 7px;   padding: 2px 2px; }
 
-  /* Taller rows so there's room to handwrite */
-  .cs-table tbody tr.data-row { height: 9mm; }
+  /* Tight data rows so everything fits on 1 page */
+  .cs-table tbody tr.data-row   { height: 6.5mm; }
   .cs-table tbody tr.data-row td {
-    font-size: 9px;
-    padding: 0 4px;
+    font-size: 8px; padding: 0 3px;
   }
-  .cs-table tbody tr.data-row td.bold { font-size: 10px; }
-  .cs-table tbody tr.data-row td.alloc { font-size: 7.5px; }
-  .group-row td { font-size: 9px; padding: 3px 6px !important; }
-  .meta-val { font-size: 16px; }
+  .cs-table tbody tr.data-row td.bold  { font-size: 9px; }
+  .cs-table tbody tr.data-row td.alloc { font-size: 7px; }
+  .cs-table tbody tr.data-row td.oos-cell { font-size: 7.5px; }
+
+  .group-row td { font-size: 8px; padding: 2px 6px !important; }
+  .logo-cell svg { width: 110px; height: 39px; }
+  .doc-title { font-size: 11px; }
+  .meta-label { font-size: 7px; }
+  .meta-val-sm { font-size: 10px; }
+  .doc-rev { font-size: 7.5px; }
 }
 @page {
   size: A4 landscape;
-  /* Zero margin removes browser-generated URL / date / page-number strip */
-  margin: 0;
+  margin: 0; /* removes browser URL / header / footer strip */
 }
 </style>
 </head>
 <body>
 
-<!-- ====== TOOLBAR ====== -->
+<!-- TOOLBAR -->
 <div class="cs-toolbar">
   <div style="display:flex;gap:4px;">
     <button class="cs-btn" id="btnYesterday" onclick="setDateOffset(-1)">− Yesterday</button>
-    <button class="cs-btn active" id="btnToday"    onclick="setDateOffset(0)">Today</button>
-    <button class="cs-btn" id="btnTomorrow"  onclick="setDateOffset(1)">+ Tomorrow</button>
+    <button class="cs-btn active" id="btnToday"   onclick="setDateOffset(0)">Today</button>
+    <button class="cs-btn" id="btnTomorrow" onclick="setDateOffset(1)">+ Tomorrow</button>
   </div>
   <div class="cs-sep"></div>
   <div style="display:flex;gap:4px;">
@@ -240,22 +185,18 @@ body {
   <a href="index.html" class="cs-btn">← Dashboard</a>
 </div>
 
-<!-- ====== PRINTABLE PAGE ====== -->
-<div class="cs-page-wrapper">
-<div class="cs-page">
+<!-- PRINTABLE PAGE -->
+<div class="cs-page-wrapper"><div class="cs-page">
 
   <!-- Document header -->
   <div class="doc-header">
     <div class="logo-cell">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 64" width="140" height="50">
         <rect width="180" height="64" rx="4" fill="#e8192c"/>
-        <text x="90" y="41" fill="white"
-              font-family="Arial Black,Arial,sans-serif"
-              font-size="28" font-weight="900"
-              text-anchor="middle" letter-spacing="-0.5">AirArabia</text>
+        <text x="90" y="41" fill="white" font-family="Arial Black,Arial,sans-serif"
+              font-size="28" font-weight="900" text-anchor="middle" letter-spacing="-0.5">AirArabia</text>
       </svg>
     </div>
-
     <div class="meta-grid">
       <div class="meta-cell">
         <span class="meta-label">Team</span>
@@ -274,21 +215,20 @@ body {
         <span class="meta-val-sm" id="hdrGenerated">—</span>
       </div>
     </div>
-
     <div class="title-cell">
       <span class="doc-title">Vehicle Control<br>Sheet</span>
       <span class="doc-rev" id="hdrRev">REV —</span>
     </div>
   </div>
 
-  <!-- Data table -->
+  <!-- Table -->
   <table class="cs-table">
     <thead>
       <tr class="hdr-top">
         <th rowspan="2" style="width:22px;">#</th>
-        <th rowspan="2" style="width:42px;">Car #</th>
+        <th rowspan="2" style="width:46px;">Car #</th>
         <th rowspan="2" style="width:68px;">Reg #</th>
-        <th rowspan="2" style="width:90px;">Allocation</th>
+        <th rowspan="2" style="width:86px;">Allocation</th>
         <th colspan="4">Issued to</th>
         <th colspan="4" class="th-divider">Returned by</th>
       </tr>
@@ -296,34 +236,27 @@ body {
         <th style="width:15%;">Name</th>
         <th style="width:8%;">Staff No.</th>
         <th style="width:7%;">Signature</th>
-        <th style="width:8%;">Time</th>
+        <th style="width:7%;">Time</th>
         <th class="th-divider" style="width:15%;">Name</th>
         <th style="width:8%;">Staff No.</th>
         <th style="width:7%;">Signature</th>
-        <th style="width:8%;">Time</th>
+        <th style="width:7%;">Time</th>
       </tr>
     </thead>
     <tbody id="csBody"></tbody>
   </table>
 
-</div>
-</div>
+</div></div>
 
 <script>
-/* ====== CONFIG ====== */
-const ALLOCATIONS = [
-  'LSM / LMM',
-  'B1 ENGINEER / TECHNICIAN',
-  'B2 ENGINEER',
-  'CAT A TECHNICIAN',
-  'CABIN TEAM'
-];
+const ALLOCATIONS = ['LSM / LMM','B1 ENGINEER / TECHNICIAN','B2 ENGINEER','CAT A TECHNICIAN','CABIN TEAM'];
 const ALLOC_LABEL = {
   'LSM / LMM':                'LSM / LMM',
   'B1 ENGINEER / TECHNICIAN': 'B1 ENG / TECH',
   'B2 ENGINEER':              'B2 ENGINEER',
   'CAT A TECHNICIAN':         'CAT A TECH',
-  'CABIN TEAM':               'CABIN TEAM'
+  'CABIN TEAM':               'CABIN TEAM',
+  'OTHER':                    'UNASSIGNED'
 };
 const ALLOC_GROUP = {
   'LSM / LMM':                'LSM / LMM',
@@ -334,151 +267,156 @@ const ALLOC_GROUP = {
   'OTHER':                    'OTHER / UNASSIGNED'
 };
 
-/* ====== STATE ====== */
-let dateOffset  = 0;     // -1 | 0 | 1
-let shiftFilter = '';    // 'day' | 'night'
+let dateOffset  = 0;
+let shiftFilter = '';
 
-/* ====== HELPERS ====== */
 function uaeDateStr(off = 0) {
   const t = new Date(Date.now() + (4 * 3600 + off * 86400) * 1000);
-  return [
-    t.getUTCFullYear(),
-    String(t.getUTCMonth() + 1).padStart(2, '0'),
-    String(t.getUTCDate()).padStart(2, '0')
-  ].join('-');
+  return [t.getUTCFullYear(), String(t.getUTCMonth()+1).padStart(2,'0'), String(t.getUTCDate()).padStart(2,'0')].join('-');
 }
-function uaeHour() {
-  return new Date(Date.now() + 4 * 3600 * 1000).getUTCHours();
-}
+function uaeHour() { return new Date(Date.now() + 4*3600*1000).getUTCHours(); }
+
 function fmtDisplay(iso) {
+  // "2026-08-22" → "22.08.2026" (full 4-digit year)
   const [y, m, d] = iso.split('-');
-  return `${d}.${m}.${y.slice(2)}`;
+  return `${d}.${m}.${y}`;
 }
 function fmtTime(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleString('en-GB', {
-    timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit'
-  });
+  return new Date(iso).toLocaleString('en-GB', { timeZone:'Asia/Dubai', hour:'2-digit', minute:'2-digit' });
 }
 function esc(s) {
-  return String(s || '').replace(/[&<>"']/g,
-    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-/* ====== CONTROLS ====== */
 function setDateOffset(off) {
   dateOffset = off;
-  document.getElementById('btnYesterday').classList.toggle('active', off === -1);
-  document.getElementById('btnToday').classList.toggle('active',     off === 0);
-  document.getElementById('btnTomorrow').classList.toggle('active',  off === 1);
+  document.getElementById('btnYesterday').classList.toggle('active', off===-1);
+  document.getElementById('btnToday').classList.toggle('active',     off===0);
+  document.getElementById('btnTomorrow').classList.toggle('active',  off===1);
   loadSheet();
 }
 function setShift(s) {
   shiftFilter = s;
-  document.getElementById('btnDay').classList.toggle('active',   s === 'day');
-  document.getElementById('btnNight').classList.toggle('active', s === 'night');
+  document.getElementById('btnDay').classList.toggle('active',   s==='day');
+  document.getElementById('btnNight').classList.toggle('active', s==='night');
   loadSheet();
 }
 
-/* ====== FETCH ====== */
 async function loadSheet() {
   const date = uaeDateStr(dateOffset);
   document.getElementById('csStatus').textContent = 'Loading…';
-  const url = `/api/loans/control-sheet?date=${date}&shift=${shiftFilter}`;
   try {
-    const res = await fetch(url);
+    const res = await fetch(`/api/loans/control-sheet?date=${date}&shift=${shiftFilter}`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     renderSheet(data);
     const sl = shiftFilter === 'night' ? 'N' : 'M';
     document.getElementById('csStatus').textContent =
-      `${data.cars.length} cars · Team ${data.duty_team || '?'} · Shift ${sl}`;
+      `${data.cars.length} cars · Team ${data.duty_team||'?'} · Shift ${sl}`;
   } catch(e) {
     document.getElementById('csStatus').textContent = 'Load failed — ' + e.message;
   }
 }
 
-/* ====== RENDER ====== */
 function renderSheet(data) {
   const sl = shiftFilter === 'night' ? 'N' : 'M';
-  document.getElementById('hdrTeam').textContent    = data.duty_team || '—';
-  document.getElementById('hdrShift').textContent   = sl;
-  document.getElementById('hdrDate').textContent    = fmtDisplay(data.date);
-  document.getElementById('hdrRev').textContent     = 'REV ' + fmtDisplay(data.date);
-  const nowStr = new Date().toLocaleString('en-GB', {
-    timeZone: 'Asia/Dubai', day: 'numeric', month: 'short',
-    hour: '2-digit', minute: '2-digit'
-  });
+
+  document.getElementById('hdrTeam').textContent      = data.duty_team || '—';
+  document.getElementById('hdrShift').textContent     = sl;
+  document.getElementById('hdrDate').textContent      = fmtDisplay(data.date);
+  document.getElementById('hdrRev').textContent       = 'REV 6  ' + fmtDisplay(data.date);
+  const nowStr = new Date().toLocaleString('en-GB',
+    { timeZone:'Asia/Dubai', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
   document.getElementById('hdrGenerated').textContent = nowStr;
 
-  /* Group cars by allocation */
+  /* Split cars into active/available and out-of-service */
   const groups = {};
   ALLOCATIONS.forEach(a => { groups[a] = []; });
   groups['OTHER'] = [];
+  const oosGroup  = [];
+
   data.cars.forEach(car => {
-    const key = ALLOCATIONS.includes(car.allocation) ? car.allocation : 'OTHER';
-    groups[key].push(car);
+    if (car.status === 'maintenance') {
+      oosGroup.push(car);
+    } else {
+      const key = ALLOCATIONS.includes(car.allocation) ? car.allocation : 'OTHER';
+      groups[key].push(car);
+    }
   });
+
   const natSort = (a, b) =>
-    a.car_number.localeCompare(b.car_number, undefined, { numeric: true, sensitivity: 'base' });
+    a.car_number.localeCompare(b.car_number, undefined, { numeric:true, sensitivity:'base' });
   Object.values(groups).forEach(g => g.sort(natSort));
+  oosGroup.sort(natSort);
 
   const body = document.getElementById('csBody');
   body.innerHTML = '';
 
+  /* ---- Normal allocation groups ---- */
   [...ALLOCATIONS, 'OTHER'].forEach(key => {
     const cars = groups[key];
     if (!cars.length) return;
 
     const isCabin = key === 'CABIN TEAM';
-    const groupLabel = ALLOC_GROUP[key] || key;
-    const cellLabel  = ALLOC_LABEL[key]  || key;
 
-    /* Group header */
+    // Group header
     const gtr = document.createElement('tr');
     gtr.className = 'group-row' + (isCabin ? ' cabin-row' : '');
-    gtr.innerHTML = `<td colspan="12">${esc(groupLabel)}<span class="group-badge">${cars.length} car${cars.length !== 1 ? 's' : ''}</span></td>`;
+    gtr.innerHTML = `<td colspan="12">${esc(ALLOC_GROUP[key]||key)}<span class="group-badge">${cars.length} car${cars.length!==1?'s':''}</span></td>`;
     body.appendChild(gtr);
 
-    /* Data rows */
     cars.forEach((car, idx) => {
       const loan = car.loan;
-      const rc = loan ? (loan.status === 'active' ? 'row-active' : 'row-returned') : 'row-available';
-
-      const issuedName = loan ? esc(loan.staff_name   || '') : '';
-      const issuedId   = loan ? esc(loan.staff_number || '') : '';
-      const issuedTime = loan ? fmtTime(loan.issued_at) : '';
-      const retName    = (loan && loan.returned_by_name)         ? esc(loan.returned_by_name)         : '';
-      const retId      = (loan && loan.returned_by_staff_number) ? esc(loan.returned_by_staff_number) : '';
-      const retTime    = (loan && loan.returned_at)              ? fmtTime(loan.returned_at)          : '';
-
-      const tr = document.createElement('tr');
+      const rc   = loan ? (loan.status==='active' ? 'row-active' : 'row-returned') : 'row-available';
+      const tr   = document.createElement('tr');
       tr.className = `data-row ${rc}`;
       tr.innerHTML = `
-        <td class="center bold">${idx + 1}</td>
+        <td class="center bold">${idx+1}</td>
         <td class="center bold">${esc(car.car_number)}</td>
         <td class="center">${esc(car.reg_number)}</td>
-        <td class="alloc">${esc(cellLabel)}</td>
-        <td>${issuedName}</td>
-        <td class="center">${issuedId}</td>
+        <td class="alloc">${esc(ALLOC_LABEL[car.allocation]||car.allocation||'—')}</td>
+        <td>${loan ? esc(loan.staff_name||'') : ''}</td>
+        <td class="center">${loan ? esc(loan.staff_number||'') : ''}</td>
         <td></td>
-        <td class="center">${issuedTime}</td>
-        <td class="td-div">${retName}</td>
-        <td class="center">${retId}</td>
+        <td class="center">${loan ? fmtTime(loan.issued_at) : ''}</td>
+        <td class="td-div">${(loan&&loan.returned_by_name) ? esc(loan.returned_by_name) : ''}</td>
+        <td class="center">${(loan&&loan.returned_by_staff_number) ? esc(loan.returned_by_staff_number) : ''}</td>
         <td></td>
-        <td class="center">${retTime}</td>
+        <td class="center">${(loan&&loan.returned_at) ? fmtTime(loan.returned_at) : ''}</td>
       `;
       body.appendChild(tr);
     });
   });
+
+  /* ---- Out of service section at bottom ---- */
+  if (oosGroup.length) {
+    const gtr = document.createElement('tr');
+    gtr.className = 'group-row oos-row';
+    gtr.innerHTML = `<td colspan="12">OUT OF SERVICE<span class="group-badge">${oosGroup.length} car${oosGroup.length!==1?'s':''}</span></td>`;
+    body.appendChild(gtr);
+
+    oosGroup.forEach((car, idx) => {
+      const tr = document.createElement('tr');
+      tr.className = 'data-row row-oos';
+      tr.innerHTML = `
+        <td class="center bold">${idx+1}</td>
+        <td class="center bold">${esc(car.car_number)}</td>
+        <td class="center">${esc(car.reg_number)}</td>
+        <td class="alloc">${esc(ALLOC_LABEL[car.allocation]||car.allocation||'—')}</td>
+        <td colspan="8" class="oos-cell td-div">— OUT OF SERVICE —</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
 }
 
-/* ====== INIT ====== */
+/* INIT */
 (function init() {
   const h = uaeHour();
   shiftFilter = (h >= 6 && h < 18) ? 'day' : 'night';
-  document.getElementById('btnDay').classList.toggle('active',   shiftFilter === 'day');
-  document.getElementById('btnNight').classList.toggle('active', shiftFilter === 'night');
+  document.getElementById('btnDay').classList.toggle('active',   shiftFilter==='day');
+  document.getElementById('btnNight').classList.toggle('active', shiftFilter==='night');
   loadSheet();
   setInterval(loadSheet, 30000);
 })();
