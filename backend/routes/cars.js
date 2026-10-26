@@ -103,6 +103,14 @@ router.post('/:id/damages', damageUpload.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Photo is required' });
 
   const { description, staff_number, staff_name } = req.body;
+  if (!description || !description.trim()) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: 'Description is required — note the damage location (e.g. RH fender, aft bumper).' });
+  }
+  if (!staff_number || !staff_number.trim()) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: 'Staff number is required.' });
+  }
   const result = db.prepare(`
     INSERT INTO car_damage_reports (car_id, photo_filename, description, staff_number, staff_name)
     VALUES (?, ?, ?, ?, ?)

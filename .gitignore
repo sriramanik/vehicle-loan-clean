@@ -9,6 +9,10 @@ node_modules/
 # Runtime data (SQLite DB, uploaded documents, monthly CSV archives)
 backend/data/
 
+# Docker bind-mount data directory (DB lives here in production)
+data/*
+!data/.gitkeep
+
 # Logs
 *.log
 npm-debug.log*

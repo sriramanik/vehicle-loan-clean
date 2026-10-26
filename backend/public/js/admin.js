@@ -966,6 +966,7 @@ function renderPendingDamages(reports) {
         <div style="display:flex; gap:8px; margin-top:10px;">
           <button class="btn btn-primary btn-sm" onclick="approveDamage(${r.id})">Approve</button>
           <button class="btn btn-outline btn-sm" onclick="rejectDamage(${r.id})">Reject</button>
+          <button class="btn btn-outline btn-sm" onclick="editDamageDescription(${r.id}, ${JSON.stringify(r.description || '')})">Edit note</button>
         </div>
       </div>
     </div>
@@ -995,10 +996,25 @@ function renderApprovedDamages(reports) {
           ${r.staff_name ? escapeHtml(r.staff_name) : ''}${r.staff_number ? ` (#${escapeHtml(r.staff_number)})` : ''} · ${fmtTime(r.created_at)} · approved by ${escapeHtml(r.reviewed_by || 'admin')}
         </div>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="deleteDamage(${r.id})" style="flex-shrink:0;">Delete</button>
+      <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+        <button class="btn btn-outline btn-sm" onclick="editDamageDescription(${r.id}, ${JSON.stringify(r.description || '')})">Edit note</button>
+        <button class="btn btn-outline btn-sm" onclick="deleteDamage(${r.id})">Delete</button>
+      </div>
     </div>
   `).join('');
   loadAdminImages(container);
+}
+
+async function editDamageDescription(id, current) {
+  const newDesc = prompt('Edit damage description:', current);
+  if (newDesc === null) return; // cancelled
+  if (!newDesc.trim()) return showToast('Description cannot be empty', 'error');
+  const res = await adminFetch(`/api/admin/damages/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: newDesc.trim() })
+  });
+  if (res.ok) { showToast('Description updated'); loadDamages(); }
+  else { const err = await res.json(); showToast(err.error || 'Update failed', 'error'); }
 }
 
 async function approveDamage(id) {

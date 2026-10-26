@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 
 const carsRouter = require('./routes/cars');
 const staffRouter = require('./routes/staff');
@@ -72,6 +73,31 @@ function runAutoArchive() {
 }
 setTimeout(runAutoArchive, 15000); // give the app a moment to fully start
 setInterval(runAutoArchive, 6 * 60 * 60 * 1000);
+
+// Daily DB backup — keeps last 7 copies in data/backups/.
+// Runs at startup so every deployment leaves a dated snapshot before any changes.
+(function runDailyBackup() {
+  try {
+    const db = require('./db');
+    const backupsDir = path.join(db.dataDir, 'backups');
+    if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
+    const today = new Date().toISOString().slice(0, 10);
+    const dest = path.join(backupsDir, `vehicle_loans_${today}.db`);
+    const src  = path.join(db.dataDir, 'vehicle_loans.db');
+    if (fs.existsSync(src) && !fs.existsSync(dest)) {
+      fs.copyFileSync(src, dest);
+      console.log(`Daily DB backup written: ${dest}`);
+      // Prune backups older than 7 days
+      fs.readdirSync(backupsDir)
+        .filter(f => /^vehicle_loans_\d{4}-\d{2}-\d{2}\.db$/.test(f))
+        .sort()
+        .slice(0, -7)
+        .forEach(f => { try { fs.unlinkSync(path.join(backupsDir, f)); } catch (e) {} });
+    }
+  } catch (err) {
+    console.error('Daily backup failed:', err.message);
+  }
+})();
 
 // Catch-all error handler. Express 4 automatically routes synchronous throws from route
 // handlers here (all our DB calls are synchronous better-sqlite3 calls), so this is the

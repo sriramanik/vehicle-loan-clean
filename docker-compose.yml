@@ -10,7 +10,7 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-change_this_password}
       - PORT=3000
     volumes:
-      - vehicle_loan_data:/app/data
-
-volumes:
-  vehicle_loan_data:
+      # Bind-mount keeps data in ./data/ on the host — visible, easy to back up,
+      # and never wiped by `docker compose down` or `docker volume prune`.
+      # NEVER add -v to `docker compose down` or the data directory will be deleted.
+      - ./data:/app/data

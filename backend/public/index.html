@@ -205,19 +205,23 @@
     <div id="addDamageBlock">
       <div style="font-size:13px; font-weight:700; margin: 14px 0 8px;">Report new damage</div>
       <div class="field">
-        <label>Your staff number</label>
+        <label>Your staff number <span style="color:var(--error); font-size:11px;">*</span></label>
         <input type="text" id="damageStaffNumber" inputmode="numeric" placeholder="e.g. 12345" autocomplete="off">
       </div>
       <div id="damageStaffConfirm"></div>
+      <div class="field" id="damageNewNameField" style="display:none;">
+        <label>Your name <span style="color:var(--text-dim); font-size:11.5px;">(not found — enter to continue)</span></label>
+        <input type="text" id="damageNewName" placeholder="Full name">
+      </div>
       <div class="field">
-        <label>Photo <span style="color:var(--text-dim); font-size:11.5px;">(will be resized automatically)</span></label>
+        <label>Damage location &amp; description <span style="color:var(--error); font-size:11px;">*</span></label>
+        <input type="text" id="damageDescription" placeholder="e.g. RH fender scratch, aft bumper dent, cracked windscreen">
+      </div>
+      <div class="field">
+        <label>Photo <span style="color:var(--error); font-size:11px;">*</span> <span style="color:var(--text-dim); font-size:11.5px;">(resized automatically)</span></label>
         <input type="file" id="damagePhotoInput" accept="image/*" capture="environment" onchange="previewDamagePhoto(this)">
         <canvas id="damageCanvas" style="display:none;"></canvas>
         <img id="damagePhotoPreview" style="display:none; max-width:100%; border-radius:8px; margin-top:8px; max-height:220px; object-fit:contain;">
-      </div>
-      <div class="field">
-        <label>Description <span style="color:var(--text-dim); font-size:11.5px;">(optional)</span></label>
-        <input type="text" id="damageDescription" placeholder="e.g. scratch on rear bumper, dented front panel">
       </div>
       <div class="error-msg" id="damageError" style="display:none;"></div>
       <div class="modal-actions">

@@ -742,6 +742,8 @@ function resetDamageModal() {
   damageResizedBlob = null;
   document.getElementById('damageStaffNumber').value = '';
   document.getElementById('damageStaffConfirm').innerHTML = '';
+  document.getElementById('damageNewNameField').style.display = 'none';
+  document.getElementById('damageNewName').value = '';
   document.getElementById('damagePhotoInput').value = '';
   document.getElementById('damagePhotoPreview').style.display = 'none';
   document.getElementById('damagePhotoPreview').src = '';
@@ -755,12 +757,15 @@ async function checkDamageStaff(staffNumber) {
   const res = await fetch(`/api/staff/verify/${encodeURIComponent(staffNumber)}`);
   const data = await res.json();
   const confirmDiv = document.getElementById('damageStaffConfirm');
+  const newNameField = document.getElementById('damageNewNameField');
   if (data.found) {
     verifiedDamageStaff = data.staff;
+    newNameField.style.display = 'none';
     confirmDiv.innerHTML = `<div class="staff-confirm">&#10003; ${escapeHtml(data.staff.name)}</div>`;
   } else {
     verifiedDamageStaff = null;
-    confirmDiv.innerHTML = `<div class="staff-confirm new">Staff number not found - report will still be submitted.</div>`;
+    newNameField.style.display = 'block';
+    confirmDiv.innerHTML = `<div class="staff-confirm new">Staff number not found — enter your name below.</div>`;
   }
 }
 
@@ -768,20 +773,44 @@ async function submitDamage() {
   const errDiv = document.getElementById('damageError');
   errDiv.style.display = 'none';
 
+  const staffNumber = document.getElementById('damageStaffNumber').value.trim();
+  const description = document.getElementById('damageDescription').value.trim();
+
+  if (!staffNumber) {
+    errDiv.textContent = 'Enter your staff number.';
+    errDiv.style.display = 'block';
+    return;
+  }
+
+  let staffName;
+  if (verifiedDamageStaff) {
+    staffName = verifiedDamageStaff.name;
+  } else {
+    staffName = document.getElementById('damageNewName').value.trim();
+    if (!staffName) {
+      errDiv.textContent = 'Staff number not found — enter your name to continue.';
+      errDiv.style.display = 'block';
+      return;
+    }
+  }
+
+  if (!description) {
+    errDiv.textContent = 'Description is required — note the damage location (e.g. RH fender, aft bumper).';
+    errDiv.style.display = 'block';
+    return;
+  }
+
   if (!damageResizedBlob) {
     errDiv.textContent = 'Please select a photo.';
     errDiv.style.display = 'block';
     return;
   }
 
-  const staffNumber = document.getElementById('damageStaffNumber').value.trim();
-  const description = document.getElementById('damageDescription').value.trim();
-
   const formData = new FormData();
   formData.append('photo', damageResizedBlob, 'damage.jpg');
-  if (staffNumber) formData.append('staff_number', staffNumber);
-  if (verifiedDamageStaff) formData.append('staff_name', verifiedDamageStaff.name);
-  if (description) formData.append('description', description);
+  formData.append('staff_number', staffNumber);
+  formData.append('staff_name', staffName);
+  formData.append('description', description);
 
   const btn = document.getElementById('damageSubmitBtn');
   btn.disabled = true; btn.textContent = 'Uploading...';
