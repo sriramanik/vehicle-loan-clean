@@ -880,6 +880,27 @@ async function loadActivity() {
 let allDamagesCache = [];
 let adminDamageResizedBlob = null;
 
+// Fetch a protected image via adminFetch and return a blob URL.
+// img elements use data-admin-src so the browser never tries to load them directly.
+async function loadAdminImages(container) {
+  const imgs = (container || document).querySelectorAll('img[data-admin-src]');
+  await Promise.all([...imgs].map(async img => {
+    try {
+      const res = await adminFetch(img.dataset.adminSrc);
+      if (res.ok) img.src = URL.createObjectURL(await res.blob());
+    } catch (e) { /* ignore broken images */ }
+  }));
+}
+
+// Open a damage photo at full size in a new tab via blob URL.
+async function openAdminPhoto(id) {
+  try {
+    const res = await adminFetch(`/api/admin/damages/${id}/photo`);
+    if (!res.ok) return showToast('Could not load photo', 'error');
+    window.open(URL.createObjectURL(await res.blob()), '_blank');
+  } catch (e) { showToast('Could not load photo', 'error'); }
+}
+
 async function loadPendingDamageCount() {
   try {
     const res = await adminFetch('/api/admin/damages/pending-count');
@@ -935,7 +956,7 @@ function renderPendingDamages(reports) {
   }
   container.innerHTML = reports.map(r => `
     <div style="border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px; display:flex; gap:14px; align-items:flex-start;">
-      <img src="/api/admin/damages/${r.id}/photo" style="width:90px; height:90px; object-fit:cover; border-radius:8px; flex-shrink:0; cursor:pointer;" onclick="window.open(this.src,'_blank')" title="Click to view full size">
+      <img data-admin-src="/api/admin/damages/${r.id}/photo" style="width:90px; height:90px; object-fit:cover; border-radius:8px; flex-shrink:0; cursor:pointer; background:var(--border);" onclick="openAdminPhoto(${r.id})" title="Click to view full size">
       <div style="flex:1; min-width:0;">
         <div style="font-weight:700; font-size:14px;">Car #${escapeHtml(r.car_number)} · ${escapeHtml(r.reg_number)}</div>
         ${r.description ? `<div style="color:var(--text-dim); font-size:13px; margin-top:4px;">${escapeHtml(r.description)}</div>` : ''}
@@ -949,6 +970,7 @@ function renderPendingDamages(reports) {
       </div>
     </div>
   `).join('');
+  loadAdminImages(container);
 }
 
 function filterApprovedDamages() {
@@ -965,7 +987,7 @@ function renderApprovedDamages(reports) {
   }
   container.innerHTML = reports.map(r => `
     <div style="border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px; display:flex; gap:12px; align-items:flex-start;">
-      <img src="/api/admin/damages/${r.id}/photo" style="width:72px; height:72px; object-fit:cover; border-radius:8px; flex-shrink:0; cursor:pointer;" onclick="window.open(this.src,'_blank')" title="Click to view full size">
+      <img data-admin-src="/api/admin/damages/${r.id}/photo" style="width:72px; height:72px; object-fit:cover; border-radius:8px; flex-shrink:0; cursor:pointer; background:var(--border);" onclick="openAdminPhoto(${r.id})" title="Click to view full size">
       <div style="flex:1; min-width:0;">
         <div style="font-weight:700; font-size:13.5px;">Car #${escapeHtml(r.car_number)} · ${escapeHtml(r.reg_number)}</div>
         ${r.description ? `<div style="color:var(--text-dim); font-size:12.5px; margin-top:3px;">${escapeHtml(r.description)}</div>` : ''}
@@ -976,6 +998,7 @@ function renderApprovedDamages(reports) {
       <button class="btn btn-outline btn-sm" onclick="deleteDamage(${r.id})" style="flex-shrink:0;">Delete</button>
     </div>
   `).join('');
+  loadAdminImages(container);
 }
 
 async function approveDamage(id) {
@@ -1013,13 +1036,14 @@ async function loadCarDamagesInModal(carId) {
   container.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">` +
     damages.map(d => `
       <div style="text-align:center;">
-        <img src="/api/admin/damages/${d.id}/photo" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:pointer;" onclick="window.open(this.src,'_blank')" title="${escapeHtml(d.description || '')}">
+        <img data-admin-src="/api/admin/damages/${d.id}/photo" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:var(--border);" onclick="openAdminPhoto(${d.id})" title="${escapeHtml(d.description || '')}">
         <div style="margin-top:3px;">
           <span class="status-badge ${d.status === 'approved' ? 'available' : d.status === 'pending' ? 'maintenance' : 'loaned'}" style="font-size:10px;">${d.status}</span>
         </div>
         ${d.description ? `<div style="font-size:10px; color:var(--text-dim); max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(d.description)}</div>` : ''}
       </div>
     `).join('') + `</div>`;
+  loadAdminImages(container);
 }
 
 // Image resize helper (shared with staff side)
