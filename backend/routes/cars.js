@@ -105,7 +105,7 @@ router.post('/:id/damages', damageUpload.single('photo'), (req, res) => {
   const { description, staff_number, staff_name } = req.body;
   if (!description || !description.trim()) {
     fs.unlinkSync(req.file.path);
-    return res.status(400).json({ error: 'Description is required — note the damage location (e.g. RH fender, aft bumper).' });
+    return res.status(400).json({ error: 'Remarks are required — note the damage location (e.g. RH fender, aft bumper).' });
   }
   if (!staff_number || !staff_number.trim()) {
     fs.unlinkSync(req.file.path);

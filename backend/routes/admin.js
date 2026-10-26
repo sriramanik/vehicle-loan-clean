@@ -513,7 +513,7 @@ router.patch('/damages/:id', (req, res) => {
   const report = db.prepare('SELECT * FROM car_damage_reports WHERE id = ?').get(req.params.id);
   if (!report) return res.status(404).json({ error: 'Not found' });
   const { description } = req.body;
-  if (!description || !description.trim()) return res.status(400).json({ error: 'Description is required' });
+  if (!description || !description.trim()) return res.status(400).json({ error: 'Remarks are required' });
   db.prepare('UPDATE car_damage_reports SET description = ? WHERE id = ?').run(description.trim(), report.id);
   logAudit(req, 'damage.edit', `Updated description for damage report #${report.id}`);
   res.json({ success: true });

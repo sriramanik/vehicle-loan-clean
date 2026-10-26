@@ -795,7 +795,7 @@ async function submitDamage() {
   }
 
   if (!description) {
-    errDiv.textContent = 'Description is required — note the damage location (e.g. RH fender, aft bumper).';
+    errDiv.textContent = 'Remarks are required — note the damage location (e.g. RH fender, aft bumper).';
     errDiv.style.display = 'block';
     return;
   }

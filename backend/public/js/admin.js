@@ -966,7 +966,7 @@ function renderPendingDamages(reports) {
         <div style="display:flex; gap:8px; margin-top:10px;">
           <button class="btn btn-primary btn-sm" onclick="approveDamage(${r.id})">Approve</button>
           <button class="btn btn-outline btn-sm" onclick="rejectDamage(${r.id})">Reject</button>
-          <button class="btn btn-outline btn-sm" onclick="editDamageDescription(${r.id}, ${JSON.stringify(r.description || '')})">Edit note</button>
+          <button class="btn btn-outline btn-sm" data-desc="${escapeHtml(r.description || '')}" onclick="editDamageRemarks(${r.id}, this.getAttribute('data-desc'))">Edit remarks</button>
         </div>
       </div>
     </div>
@@ -997,7 +997,7 @@ function renderApprovedDamages(reports) {
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
-        <button class="btn btn-outline btn-sm" onclick="editDamageDescription(${r.id}, ${JSON.stringify(r.description || '')})">Edit note</button>
+        <button class="btn btn-outline btn-sm" data-desc="${escapeHtml(r.description || '')}" onclick="editDamageRemarks(${r.id}, this.getAttribute('data-desc'))">Edit remarks</button>
         <button class="btn btn-outline btn-sm" onclick="deleteDamage(${r.id})">Delete</button>
       </div>
     </div>
@@ -1005,15 +1005,15 @@ function renderApprovedDamages(reports) {
   loadAdminImages(container);
 }
 
-async function editDamageDescription(id, current) {
-  const newDesc = prompt('Edit damage description:', current);
+async function editDamageRemarks(id, current) {
+  const newDesc = prompt('Edit damage remarks:', current);
   if (newDesc === null) return; // cancelled
-  if (!newDesc.trim()) return showToast('Description cannot be empty', 'error');
+  if (!newDesc.trim()) return showToast('Remarks cannot be empty', 'error');
   const res = await adminFetch(`/api/admin/damages/${id}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ description: newDesc.trim() })
   });
-  if (res.ok) { showToast('Description updated'); loadDamages(); }
+  if (res.ok) { showToast('Remarks updated'); loadDamages(); }
   else { const err = await res.json(); showToast(err.error || 'Update failed', 'error'); }
 }
 
@@ -1100,6 +1100,7 @@ async function uploadAdminDamage() {
   if (!editingCarId) return;
 
   const description = document.getElementById('adminDamageDescription').value.trim();
+  if (!description) return showToast('Remarks are required — note the damage location', 'error');
   const formData = new FormData();
   formData.append('photo', adminDamageResizedBlob, 'damage.jpg');
   if (description) formData.append('description', description);
