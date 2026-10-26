@@ -239,7 +239,7 @@ function openCarSheet(carId) {
         <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;">
           ${damages.map(d => `
             <div style="flex:0 0 auto; text-align:center;">
-              <img src="/api/cars/${carId}/damages/${d.id}/photo" style="height:80px; width:80px; object-fit:cover; border-radius:8px; border:1px solid var(--border);">
+              <img src="/api/cars/${carId}/damages/${d.id}/photo" style="height:80px; width:80px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:pointer;" onclick="window.open(this.src,'_blank')" title="Tap to view full size">
               ${d.description ? `<div style="font-size:11px; color:var(--text-dim); max-width:80px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(d.description)}</div>` : ''}
             </div>
           `).join('')}
@@ -721,7 +721,7 @@ function openDamageModal(carId) {
         <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:10px;">
           ${damages.map(d => `
             <div style="flex:0 0 auto; text-align:center;">
-              <img src="/api/cars/${carId}/damages/${d.id}/photo" style="height:90px; width:90px; object-fit:cover; border-radius:8px; border:1px solid var(--border);">
+              <img src="/api/cars/${carId}/damages/${d.id}/photo" style="height:90px; width:90px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:pointer;" onclick="window.open(this.src,'_blank')" title="Tap to view full size">
               ${d.description ? `<div style="font-size:11px; color:var(--text-dim); max-width:90px; margin-top:3px;">${escapeHtml(d.description)}</div>` : ''}
               <div style="font-size:11px; color:var(--text-dim);">${fmtTime(d.created_at)}</div>
             </div>
