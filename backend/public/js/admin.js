@@ -76,6 +76,8 @@ function showApp() {
   loadMonthsList();
   loadArchiveFilesList();
   loadSettingsIntoUI();
+  loadPendingDamageCount();
+  setInterval(loadPendingDamageCount, 30000);
 }
 
 async function populateStaffTeamFilter() {
@@ -138,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tab.classList.add('active');
       document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
       if (tab.dataset.tab === 'overview') loadOverview();
+      if (tab.dataset.tab === 'damages') loadDamages();
       if (tab.dataset.tab === 'activity') loadActivity();
     });
   });
@@ -346,6 +349,7 @@ function openEditCarModal(carId) {
   document.getElementById('editCarError').style.display = 'none';
   document.getElementById('editCarModalOverlay').classList.add('open');
   loadCarDocuments(carId);
+  loadCarDamagesInModal(carId);
 }
 
 async function submitEditCar() {
@@ -869,5 +873,208 @@ async function loadActivity() {
     `).join('') || `<tr><td colspan="4" style="text-align:center; color:var(--text-dim);">No activity recorded yet.</td></tr>`;
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-dim);">Could not load activity log.</td></tr>`;
+  }
+}
+
+// ---------------- DAMAGE REPORTS ----------------
+let allDamagesCache = [];
+let adminDamageResizedBlob = null;
+
+async function loadPendingDamageCount() {
+  try {
+    const res = await adminFetch('/api/admin/damages/pending-count');
+    const { count } = await res.json();
+    const badge = document.getElementById('damagesBadge');
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (e) { /* ignore */ }
+}
+
+async function loadDamages() {
+  await loadPendingDamageCount();
+
+  const [pendingRes, approvedRes] = await Promise.all([
+    adminFetch('/api/admin/damages?status=pending'),
+    adminFetch('/api/admin/damages?status=approved')
+  ]);
+  const pending = await pendingRes.json();
+  const approved = await approvedRes.json();
+
+  const banner = document.getElementById('pendingDamageBanner');
+  if (pending.length > 0) {
+    banner.textContent = `${pending.length} pending damage report${pending.length > 1 ? 's' : ''} — review below`;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+
+  renderPendingDamages(pending);
+
+  allDamagesCache = approved;
+  const carNumbers = [...new Set(approved.map(d => d.car_number).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  );
+  const select = document.getElementById('damagesCarFilter');
+  const currentVal = select.value;
+  select.innerHTML = '<option value="">All cars</option>' +
+    carNumbers.map(c => `<option value="${escapeHtml(c)}">${escapeHtml('Car #' + c)}</option>`).join('');
+  if (currentVal) select.value = currentVal;
+
+  filterApprovedDamages();
+}
+
+function renderPendingDamages(reports) {
+  const container = document.getElementById('pendingDamagesList');
+  if (!reports.length) {
+    container.innerHTML = '<div class="sub" style="color:var(--text-dim);">No pending damage reports.</div>';
+    return;
+  }
+  container.innerHTML = reports.map(r => `
+    <div style="border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px; display:flex; gap:14px; align-items:flex-start;">
+      <img src="/api/admin/damages/${r.id}/photo" style="width:90px; height:90px; object-fit:cover; border-radius:8px; flex-shrink:0; cursor:pointer;" onclick="window.open(this.src,'_blank')" title="Click to view full size">
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:14px;">Car #${escapeHtml(r.car_number)} · ${escapeHtml(r.reg_number)}</div>
+        ${r.description ? `<div style="color:var(--text-dim); font-size:13px; margin-top:4px;">${escapeHtml(r.description)}</div>` : ''}
+        <div style="color:var(--text-dim); font-size:12px; margin-top:6px;">
+          ${r.staff_name ? escapeHtml(r.staff_name) : 'Unknown'}${r.staff_number ? ` (#${escapeHtml(r.staff_number)})` : ''} · ${fmtTime(r.created_at)}
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="approveDamage(${r.id})">Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="rejectDamage(${r.id})">Reject</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterApprovedDamages() {
+  const carFilter = document.getElementById('damagesCarFilter').value;
+  const filtered = carFilter ? allDamagesCache.filter(d => d.car_number === carFilter) : allDamagesCache;
+  renderApprovedDamages(filtered);
+}
+
+function renderApprovedDamages(reports) {
+  const container = document.getElementById('approvedDamagesList');
+  if (!reports.length) {
+    container.innerHTML = '<div class="sub" style="color:var(--text-dim);">No approved damage records.</div>';
+    return;
+  }
+  container.innerHTML = reports.map(r => `
+    <div style="border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px; display:flex; gap:12px; align-items:flex-start;">
+      <img src="/api/admin/damages/${r.id}/photo" style="width:72px; height:72px; object-fit:cover; border-radius:8px; flex-shrink:0; cursor:pointer;" onclick="window.open(this.src,'_blank')" title="Click to view full size">
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:13.5px;">Car #${escapeHtml(r.car_number)} · ${escapeHtml(r.reg_number)}</div>
+        ${r.description ? `<div style="color:var(--text-dim); font-size:12.5px; margin-top:3px;">${escapeHtml(r.description)}</div>` : ''}
+        <div style="color:var(--text-dim); font-size:12px; margin-top:4px;">
+          ${r.staff_name ? escapeHtml(r.staff_name) : ''}${r.staff_number ? ` (#${escapeHtml(r.staff_number)})` : ''} · ${fmtTime(r.created_at)} · approved by ${escapeHtml(r.reviewed_by || 'admin')}
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="deleteDamage(${r.id})" style="flex-shrink:0;">Delete</button>
+    </div>
+  `).join('');
+}
+
+async function approveDamage(id) {
+  const res = await adminFetch(`/api/admin/damages/${id}/approve`, { method: 'POST' });
+  if (res.ok) { showToast('Damage report approved'); loadDamages(); }
+  else { const err = await res.json(); showToast(err.error || 'Approve failed', 'error'); }
+}
+
+async function rejectDamage(id) {
+  if (!confirm('Reject this damage report? The photo will be deleted.')) return;
+  const res = await adminFetch(`/api/admin/damages/${id}/reject`, { method: 'POST' });
+  if (res.ok) { showToast('Damage report rejected'); loadDamages(); }
+  else { const err = await res.json(); showToast(err.error || 'Reject failed', 'error'); }
+}
+
+async function deleteDamage(id) {
+  if (!confirm('Delete this damage record and photo? This cannot be undone.')) return;
+  const res = await adminFetch(`/api/admin/damages/${id}`, { method: 'DELETE' });
+  if (res.ok) { showToast('Damage record deleted'); loadDamages(); }
+  else { const err = await res.json(); showToast(err.error || 'Delete failed', 'error'); }
+}
+
+// Damage photos in the edit-car modal
+async function loadCarDamagesInModal(carId) {
+  const container = document.getElementById('carDamagesList');
+  container.innerHTML = '<div class="sub">Loading...</div>';
+  const res = await adminFetch(`/api/admin/cars/${carId}/damages`);
+  const damages = await res.json();
+
+  if (!damages.length) {
+    container.innerHTML = '<div class="sub" style="color:var(--text-dim);">No damage photos yet.</div>';
+    return;
+  }
+
+  container.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">` +
+    damages.map(d => `
+      <div style="text-align:center;">
+        <img src="/api/admin/damages/${d.id}/photo" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:pointer;" onclick="window.open(this.src,'_blank')" title="${escapeHtml(d.description || '')}">
+        <div style="margin-top:3px;">
+          <span class="status-badge ${d.status === 'approved' ? 'available' : d.status === 'pending' ? 'maintenance' : 'loaned'}" style="font-size:10px;">${d.status}</span>
+        </div>
+        ${d.description ? `<div style="font-size:10px; color:var(--text-dim); max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(d.description)}</div>` : ''}
+      </div>
+    `).join('') + `</div>`;
+}
+
+// Image resize helper (shared with staff side)
+function resizeImageForUpload(file, canvasId) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.getElementById(canvasId);
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.75);
+    };
+    img.src = url;
+  });
+}
+
+function previewAdminDamage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  resizeImageForUpload(file, 'adminDamageCanvas').then(blob => {
+    adminDamageResizedBlob = blob;
+    const preview = document.getElementById('adminDamagePreview');
+    preview.src = URL.createObjectURL(blob);
+    preview.style.display = 'block';
+  });
+}
+
+async function uploadAdminDamage() {
+  if (!adminDamageResizedBlob) return showToast('Choose a photo first', 'error');
+  if (!editingCarId) return;
+
+  const description = document.getElementById('adminDamageDescription').value.trim();
+  const formData = new FormData();
+  formData.append('photo', adminDamageResizedBlob, 'damage.jpg');
+  if (description) formData.append('description', description);
+
+  const res = await adminFetch(`/api/admin/cars/${editingCarId}/damages`, { method: 'POST', body: formData });
+  if (res.ok) {
+    showToast('Damage photo uploaded');
+    document.getElementById('adminDamageFile').value = '';
+    document.getElementById('adminDamagePreview').style.display = 'none';
+    document.getElementById('adminDamageDescription').value = '';
+    adminDamageResizedBlob = null;
+    loadCarDamagesInModal(editingCarId);
+    loadPendingDamageCount();
+  } else {
+    const err = await res.json();
+    showToast(err.error || 'Upload failed', 'error');
   }
 }

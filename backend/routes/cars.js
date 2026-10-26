@@ -1,7 +1,28 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const db = require('../db');
 const { isLoanOverdue } = require('../shiftUtil');
+
+const damageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(db.damagesDir, String(req.params.id));
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, `damage_${Date.now()}.jpg`);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only image files allowed'));
+    cb(null, true);
+  }
+});
 
 const MAX_REMARKS_PER_CAR = 5;
 
@@ -70,6 +91,46 @@ router.delete('/:id/remarks/:remarkId', (req, res) => {
   if (!remark) return res.status(404).json({ error: 'Remark not found' });
   db.prepare('DELETE FROM car_remarks WHERE id = ?').run(remark.id);
   res.json({ success: true });
+});
+
+// Submit damage report (staff, no auth needed) — photo is pre-resized client-side
+router.post('/:id/damages', damageUpload.single('photo'), (req, res) => {
+  const car = db.prepare('SELECT * FROM cars WHERE id = ?').get(req.params.id);
+  if (!car) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return res.status(404).json({ error: 'Car not found' });
+  }
+  if (!req.file) return res.status(400).json({ error: 'Photo is required' });
+
+  const { description, staff_number, staff_name } = req.body;
+  const result = db.prepare(`
+    INSERT INTO car_damage_reports (car_id, photo_filename, description, staff_number, staff_name)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(car.id, req.file.filename, description || null, staff_number || null, staff_name || null);
+
+  res.json({ success: true, id: result.lastInsertRowid });
+});
+
+// List approved damage reports for a car (public)
+router.get('/:id/damages', (req, res) => {
+  const reports = db.prepare(`
+    SELECT id, car_id, description, staff_number, staff_name, created_at
+    FROM car_damage_reports
+    WHERE car_id = ? AND status = 'approved'
+    ORDER BY created_at DESC
+  `).all(req.params.id);
+  res.json(reports);
+});
+
+// Serve photo for an approved damage report (public)
+router.get('/:id/damages/:reportId/photo', (req, res) => {
+  const report = db.prepare(`
+    SELECT * FROM car_damage_reports WHERE id = ? AND car_id = ? AND status = 'approved'
+  `).get(req.params.reportId, req.params.id);
+  if (!report) return res.status(404).json({ error: 'Not found' });
+  const filePath = path.join(db.damagesDir, String(req.params.id), report.photo_filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Photo file missing' });
+  res.sendFile(filePath);
 });
 
 module.exports = router;

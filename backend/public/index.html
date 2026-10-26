@@ -68,10 +68,13 @@
     <div id="sheetLoanInfo"></div>
     <div id="sheetRemarks"></div>
 
+    <div id="sheetDamages"></div>
+
     <div style="display:flex; flex-direction:column; gap:10px;">
       <button class="btn btn-primary" id="sheetTakeBtn" onclick="sheetOpenLoan()" style="display:none;">Take this car</button>
       <button class="btn btn-danger" id="sheetReturnBtn" onclick="sheetOpenReturn()" style="display:none;">Return this car</button>
       <button class="btn btn-outline" onclick="sheetOpenRemark()">Add / view remark</button>
+      <button class="btn btn-outline" onclick="sheetOpenDamage()">Report / view damage</button>
     </div>
   </div>
 </div>
@@ -186,6 +189,40 @@
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="closeModal('remarkModalOverlay')">Cancel</button>
         <button class="btn btn-primary" onclick="submitRemark()">Save remark</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DAMAGE MODAL -->
+<div class="modal-overlay" id="damageModalOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('damageModalOverlay')">&times;</button>
+    <h2 id="damageCarLabel">Damage report</h2>
+
+    <div id="existingDamagesBlock" style="margin-top:10px;"></div>
+
+    <div id="addDamageBlock">
+      <div style="font-size:13px; font-weight:700; margin: 14px 0 8px;">Report new damage</div>
+      <div class="field">
+        <label>Your staff number</label>
+        <input type="text" id="damageStaffNumber" inputmode="numeric" placeholder="e.g. 12345" autocomplete="off">
+      </div>
+      <div id="damageStaffConfirm"></div>
+      <div class="field">
+        <label>Photo <span style="color:var(--text-dim); font-size:11.5px;">(will be resized automatically)</span></label>
+        <input type="file" id="damagePhotoInput" accept="image/*" capture="environment" onchange="previewDamagePhoto(this)">
+        <canvas id="damageCanvas" style="display:none;"></canvas>
+        <img id="damagePhotoPreview" style="display:none; max-width:100%; border-radius:8px; margin-top:8px; max-height:220px; object-fit:contain;">
+      </div>
+      <div class="field">
+        <label>Description <span style="color:var(--text-dim); font-size:11.5px;">(optional)</span></label>
+        <input type="text" id="damageDescription" placeholder="e.g. scratch on rear bumper, dented front panel">
+      </div>
+      <div class="error-msg" id="damageError" style="display:none;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('damageModalOverlay')">Cancel</button>
+        <button class="btn btn-primary" id="damageSubmitBtn" onclick="submitDamage()">Submit report</button>
       </div>
     </div>
   </div>

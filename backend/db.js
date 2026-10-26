@@ -11,6 +11,9 @@ if (!fs.existsSync(archivesDir)) fs.mkdirSync(archivesDir, { recursive: true });
 const docsDir = path.join(dataDir, 'car-documents');
 if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true });
 
+const damagesDir = path.join(dataDir, 'car-damages');
+if (!fs.existsSync(damagesDir)) fs.mkdirSync(damagesDir, { recursive: true });
+
 const db = new Database(path.join(dataDir, 'vehicle_loans.db'));
 db.pragma('journal_mode = WAL');
 
@@ -75,6 +78,20 @@ CREATE TABLE IF NOT EXISTS car_remarks (
   FOREIGN KEY (car_id) REFERENCES cars(id)
 );
 
+CREATE TABLE IF NOT EXISTS car_damage_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  car_id INTEGER NOT NULL,
+  photo_filename TEXT NOT NULL,
+  description TEXT,
+  staff_number TEXT,
+  staff_name TEXT,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending | approved | rejected
+  created_at TEXT DEFAULT (datetime('now')),
+  reviewed_by TEXT,
+  reviewed_at TEXT,
+  FOREIGN KEY (car_id) REFERENCES cars(id)
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
@@ -129,3 +146,4 @@ module.exports = db;
 module.exports.dataDir = dataDir;
 module.exports.archivesDir = archivesDir;
 module.exports.docsDir = docsDir;
+module.exports.damagesDir = damagesDir;

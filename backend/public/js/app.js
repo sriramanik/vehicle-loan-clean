@@ -9,6 +9,9 @@ let remarkTargetCarId = null;
 let verifiedStaff = null;         // for loan flow
 let verifiedReturnStaff = null;   // for return flow
 let verifiedRemarkStaff = null;   // for remark flow
+let verifiedDamageStaff = null;   // for damage report flow
+let damageTargetCarId = null;
+let damageResizedBlob = null;
 
 const ALLOCATIONS = [
   'LSM / LMM',
@@ -54,6 +57,7 @@ function closeModal(id) {
   if (id === 'loanModalOverlay') resetLoanModal();
   if (id === 'returnModalOverlay') resetReturnModal();
   if (id === 'remarkModalOverlay') resetRemarkModal();
+  if (id === 'damageModalOverlay') resetDamageModal();
 }
 
 // ---------------- Header: date + duty status ----------------
@@ -225,6 +229,25 @@ function openCarSheet(carId) {
   document.getElementById('sheetTakeBtn').style.display = car.status === 'available' ? 'block' : 'none';
   document.getElementById('sheetReturnBtn').style.display = car.status === 'loaned' ? 'block' : 'none';
 
+  // load approved damage photos asynchronously
+  const sheetDamages = document.getElementById('sheetDamages');
+  sheetDamages.innerHTML = '';
+  fetch(`/api/cars/${carId}/damages`).then(r => r.json()).then(damages => {
+    if (damages.length) {
+      sheetDamages.innerHTML = `
+        <div style="font-size:12.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;">Damage records (${damages.length})</div>
+        <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;">
+          ${damages.map(d => `
+            <div style="flex:0 0 auto; text-align:center;">
+              <img src="/api/cars/${carId}/damages/${d.id}/photo" style="height:80px; width:80px; object-fit:cover; border-radius:8px; border:1px solid var(--border);">
+              ${d.description ? `<div style="font-size:11px; color:var(--text-dim); max-width:80px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(d.description)}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }).catch(() => {});
+
   document.getElementById('carSheetOverlay').classList.add('open');
 }
 
@@ -239,6 +262,10 @@ function sheetOpenReturn() {
 function sheetOpenRemark() {
   closeModal('carSheetOverlay');
   openRemarkModal(activeCarId);
+}
+function sheetOpenDamage() {
+  closeModal('carSheetOverlay');
+  openDamageModal(activeCarId);
 }
 
 // ---------------- Loan flow ----------------
@@ -643,6 +670,151 @@ async function clearRemark(carId, remarkId) {
     showToast('Could not clear remark', 'error');
   }
 }
+
+// ---------------- Damage report flow ----------------
+
+// Resize image client-side to max 1200px on longest side, JPEG at 0.75 quality
+function resizeImageForUpload(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.getElementById('damageCanvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.75);
+    };
+    img.src = url;
+  });
+}
+
+function previewDamagePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  resizeImageForUpload(file).then(blob => {
+    damageResizedBlob = blob;
+    const preview = document.getElementById('damagePhotoPreview');
+    preview.src = URL.createObjectURL(blob);
+    preview.style.display = 'block';
+  });
+}
+
+function openDamageModal(carId) {
+  damageTargetCarId = carId;
+  const car = cars.find(c => c.id === carId);
+  document.getElementById('damageCarLabel').textContent = `Damage · Car ${car.car_number}`;
+
+  // load existing approved damages
+  const block = document.getElementById('existingDamagesBlock');
+  block.innerHTML = '<div class="sub" style="color:var(--text-dim);">Loading...</div>';
+  fetch(`/api/cars/${carId}/damages`).then(r => r.json()).then(damages => {
+    if (damages.length) {
+      block.innerHTML = `
+        <div style="font-size:12.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;">Recorded damage (${damages.length})</div>
+        <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:10px;">
+          ${damages.map(d => `
+            <div style="flex:0 0 auto; text-align:center;">
+              <img src="/api/cars/${carId}/damages/${d.id}/photo" style="height:90px; width:90px; object-fit:cover; border-radius:8px; border:1px solid var(--border);">
+              ${d.description ? `<div style="font-size:11px; color:var(--text-dim); max-width:90px; margin-top:3px;">${escapeHtml(d.description)}</div>` : ''}
+              <div style="font-size:11px; color:var(--text-dim);">${fmtTime(d.created_at)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      block.innerHTML = '';
+    }
+  }).catch(() => { block.innerHTML = ''; });
+
+  document.getElementById('damageModalOverlay').classList.add('open');
+}
+
+function resetDamageModal() {
+  damageTargetCarId = null;
+  verifiedDamageStaff = null;
+  damageResizedBlob = null;
+  document.getElementById('damageStaffNumber').value = '';
+  document.getElementById('damageStaffConfirm').innerHTML = '';
+  document.getElementById('damagePhotoInput').value = '';
+  document.getElementById('damagePhotoPreview').style.display = 'none';
+  document.getElementById('damagePhotoPreview').src = '';
+  document.getElementById('damageDescription').value = '';
+  document.getElementById('damageError').style.display = 'none';
+  const btn = document.getElementById('damageSubmitBtn');
+  btn.disabled = false; btn.textContent = 'Submit report';
+}
+
+async function checkDamageStaff(staffNumber) {
+  const res = await fetch(`/api/staff/verify/${encodeURIComponent(staffNumber)}`);
+  const data = await res.json();
+  const confirmDiv = document.getElementById('damageStaffConfirm');
+  if (data.found) {
+    verifiedDamageStaff = data.staff;
+    confirmDiv.innerHTML = `<div class="staff-confirm">&#10003; ${escapeHtml(data.staff.name)}</div>`;
+  } else {
+    verifiedDamageStaff = null;
+    confirmDiv.innerHTML = `<div class="staff-confirm new">Staff number not found - report will still be submitted.</div>`;
+  }
+}
+
+async function submitDamage() {
+  const errDiv = document.getElementById('damageError');
+  errDiv.style.display = 'none';
+
+  if (!damageResizedBlob) {
+    errDiv.textContent = 'Please select a photo.';
+    errDiv.style.display = 'block';
+    return;
+  }
+
+  const staffNumber = document.getElementById('damageStaffNumber').value.trim();
+  const description = document.getElementById('damageDescription').value.trim();
+
+  const formData = new FormData();
+  formData.append('photo', damageResizedBlob, 'damage.jpg');
+  if (staffNumber) formData.append('staff_number', staffNumber);
+  if (verifiedDamageStaff) formData.append('staff_name', verifiedDamageStaff.name);
+  if (description) formData.append('description', description);
+
+  const btn = document.getElementById('damageSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Uploading...';
+
+  const res = await fetch(`/api/cars/${damageTargetCarId}/damages`, { method: 'POST', body: formData });
+
+  btn.disabled = false; btn.textContent = 'Submit report';
+
+  if (res.ok) {
+    closeModal('damageModalOverlay');
+    showToast('Damage report submitted — pending admin review', 'success');
+  } else {
+    const err = await res.json();
+    errDiv.textContent = err.error || 'Upload failed.';
+    errDiv.style.display = 'block';
+  }
+}
+
+// Wire up damage staff lookup
+document.addEventListener('DOMContentLoaded', () => {
+  const damageStaffInput = document.getElementById('damageStaffNumber');
+  if (damageStaffInput) {
+    let t;
+    damageStaffInput.addEventListener('input', (e) => {
+      clearTimeout(t);
+      const val = e.target.value.trim();
+      verifiedDamageStaff = null;
+      document.getElementById('damageStaffConfirm').innerHTML = '';
+      if (!val) return;
+      t = setTimeout(() => checkDamageStaff(val), 400);
+    });
+  }
+});
 
 // ---------------- Help ----------------
 

@@ -55,6 +55,7 @@
         <button class="admin-tab" data-tab="cars">Cars</button>
         <button class="admin-tab" data-tab="staff">Staff</button>
         <button class="admin-tab" data-tab="records">Records</button>
+        <button class="admin-tab" data-tab="damages" id="damagesTab">Damages <span id="damagesBadge" style="display:none; background:#e53e3e; color:#fff; border-radius:10px; font-size:10px; font-weight:800; padding:1px 6px; margin-left:4px; vertical-align:middle;"></span></button>
         <button class="admin-tab" data-tab="activity">Activity</button>
         <button class="admin-tab" data-tab="help">Help</button>
       </div>
@@ -180,6 +181,22 @@
         </div>
       </div>
 
+      <!-- DAMAGES TAB -->
+      <div class="admin-panel" id="panel-damages">
+        <div id="pendingDamageBanner" style="display:none; background:var(--overdue-bg); color:var(--overdue-text); padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:13.5px; font-weight:700;"></div>
+
+        <div class="section-title">Pending review</div>
+        <div id="pendingDamagesList" style="margin-bottom:24px;"></div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div class="section-title" style="margin-bottom:0;">Approved damage records</div>
+          <select class="filter-input" id="damagesCarFilter" onchange="filterApprovedDamages()" style="max-width:180px;">
+            <option value="">All cars</option>
+          </select>
+        </div>
+        <div id="approvedDamagesList"></div>
+      </div>
+
       <!-- ACTIVITY TAB -->
       <div class="admin-panel" id="panel-activity">
         <div class="sub" style="color:var(--text-dim); font-size:12.5px; margin-bottom:14px;">
@@ -282,6 +299,19 @@
     <div style="margin-top:22px; padding-top:16px; border-top:1px solid var(--border);">
       <h2 style="font-size:15px; margin-bottom:10px;">Documents</h2>
       <div id="carDocumentsList"></div>
+    </div>
+
+    <div style="margin-top:22px; padding-top:16px; border-top:1px solid var(--border);">
+      <h2 style="font-size:15px; margin-bottom:10px;">Damage photos</h2>
+      <div id="carDamagesList"></div>
+      <div style="margin-top:12px;">
+        <div style="font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--text-dim);">Add damage photo</div>
+        <canvas id="adminDamageCanvas" style="display:none;"></canvas>
+        <input type="file" id="adminDamageFile" accept="image/*" onchange="previewAdminDamage(this)" style="margin-bottom:6px; display:block;">
+        <img id="adminDamagePreview" style="display:none; max-width:100%; max-height:180px; object-fit:contain; border-radius:8px; margin-bottom:8px; border:1px solid var(--border);">
+        <input class="filter-input" id="adminDamageDescription" placeholder="Description (optional)" style="margin-bottom:6px; display:block; width:100%;">
+        <button class="btn btn-primary btn-sm" onclick="uploadAdminDamage()">Upload damage photo</button>
+      </div>
     </div>
   </div>
 </div>

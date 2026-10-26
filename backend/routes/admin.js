@@ -12,6 +12,25 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const DOC_TYPES = ['Insurance', 'Mulkiya / Registration', 'Airport Vehicle Permit', 'Other'];
 
+// Damage photos stored on disk under data/car-damages/<car_id>/
+const damagesUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(db.damagesDir, String(req.params.id));
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, `damage_${Date.now()}.jpg`);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only image files allowed'));
+    cb(null, true);
+  }
+});
+
 // Documents are stored on disk under data/car-documents/<car_id>/
 const docsUpload = multer({
   storage: multer.diskStorage({
@@ -390,6 +409,116 @@ router.get('/archives/files/:filename', (req, res) => {
   const filePath = archiveUtil.archiveFilePath(req.params.filename.replace('.csv', ''));
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Archive file not found' });
   res.download(filePath, req.params.filename);
+});
+
+// ---- DAMAGE REPORTS ----
+
+// Pending count (for notification badge) — no auth required so staff page can also check
+// Note: adminAuth middleware is already applied above, so this IS auth-protected
+router.get('/damages/pending-count', (req, res) => {
+  const count = db.prepare(`SELECT COUNT(*) as c FROM car_damage_reports WHERE status = 'pending'`).get().c;
+  res.json({ count });
+});
+
+// List damage reports filtered by status (pending|approved|rejected|all)
+router.get('/damages', (req, res) => {
+  const status = req.query.status;
+  if (status && status !== 'all') {
+    const reports = db.prepare(`
+      SELECT r.*, c.car_number, c.reg_number
+      FROM car_damage_reports r JOIN cars c ON c.id = r.car_id
+      WHERE r.status = ? ORDER BY r.created_at DESC
+    `).all(status);
+    return res.json(reports);
+  }
+  res.json(db.prepare(`
+    SELECT r.*, c.car_number, c.reg_number
+    FROM car_damage_reports r JOIN cars c ON c.id = r.car_id
+    ORDER BY r.created_at DESC
+  `).all());
+});
+
+// Serve any damage photo (admin — bypasses approved-only filter)
+router.get('/damages/:id/photo', (req, res) => {
+  const report = db.prepare('SELECT * FROM car_damage_reports WHERE id = ?').get(req.params.id);
+  if (!report) return res.status(404).json({ error: 'Not found' });
+  const filePath = path.join(db.damagesDir, String(report.car_id), report.photo_filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Photo file missing' });
+  res.sendFile(filePath);
+});
+
+// Admin uploads a damage photo for a car (auto-approved)
+router.post('/cars/:id/damages', damagesUpload.single('photo'), (req, res) => {
+  const car = db.prepare('SELECT * FROM cars WHERE id = ?').get(req.params.id);
+  if (!car) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return res.status(404).json({ error: 'Car not found' });
+  }
+  if (!req.file) return res.status(400).json({ error: 'Photo is required' });
+
+  const { description } = req.body;
+  const adminName = (req.header('x-admin-name') || '').trim() || 'Admin';
+  const result = db.prepare(`
+    INSERT INTO car_damage_reports (car_id, photo_filename, description, staff_name, status, reviewed_by, reviewed_at)
+    VALUES (?, ?, ?, ?, 'approved', ?, ?)
+  `).run(car.id, req.file.filename, description || null, adminName, adminName, new Date().toISOString());
+
+  logAudit(req, 'damage.upload', `Uploaded approved damage photo for car #${car.car_number}`);
+  res.json({ success: true, id: result.lastInsertRowid });
+});
+
+// List damage reports for a specific car (admin view — all statuses)
+router.get('/cars/:id/damages', (req, res) => {
+  const reports = db.prepare(`
+    SELECT * FROM car_damage_reports WHERE car_id = ? ORDER BY created_at DESC
+  `).all(req.params.id);
+  res.json(reports);
+});
+
+// Approve a pending damage report
+router.post('/damages/:id/approve', (req, res) => {
+  const report = db.prepare('SELECT * FROM car_damage_reports WHERE id = ?').get(req.params.id);
+  if (!report) return res.status(404).json({ error: 'Not found' });
+  if (report.status !== 'pending') return res.status(409).json({ error: 'Already reviewed' });
+
+  const reviewerName = (req.header('x-admin-name') || '').trim() || 'Admin';
+  db.prepare(`
+    UPDATE car_damage_reports SET status = 'approved', reviewed_by = ?, reviewed_at = ? WHERE id = ?
+  `).run(reviewerName, new Date().toISOString(), report.id);
+
+  logAudit(req, 'damage.approve', `Approved damage report #${report.id} for car id ${report.car_id}`);
+  res.json({ success: true });
+});
+
+// Reject a pending damage report (deletes the stored photo)
+router.post('/damages/:id/reject', (req, res) => {
+  const report = db.prepare('SELECT * FROM car_damage_reports WHERE id = ?').get(req.params.id);
+  if (!report) return res.status(404).json({ error: 'Not found' });
+  if (report.status !== 'pending') return res.status(409).json({ error: 'Already reviewed' });
+
+  const reviewerName = (req.header('x-admin-name') || '').trim() || 'Admin';
+  db.prepare(`
+    UPDATE car_damage_reports SET status = 'rejected', reviewed_by = ?, reviewed_at = ? WHERE id = ?
+  `).run(reviewerName, new Date().toISOString(), report.id);
+
+  const filePath = path.join(db.damagesDir, String(report.car_id), report.photo_filename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+  logAudit(req, 'damage.reject', `Rejected damage report #${report.id} for car id ${report.car_id}`);
+  res.json({ success: true });
+});
+
+// Delete an approved damage report (admin)
+router.delete('/damages/:id', (req, res) => {
+  const report = db.prepare('SELECT * FROM car_damage_reports WHERE id = ?').get(req.params.id);
+  if (!report) return res.status(404).json({ error: 'Not found' });
+
+  const filePath = path.join(db.damagesDir, String(report.car_id), report.photo_filename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+  db.prepare('DELETE FROM car_damage_reports WHERE id = ?').run(report.id);
+  logAudit(req, 'damage.delete', `Deleted damage report #${report.id} for car id ${report.car_id}`);
+  res.json({ success: true });
 });
 
 // ---- DATABASE BACKUP / RESTORE ----
